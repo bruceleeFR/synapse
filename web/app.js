@@ -13,6 +13,23 @@
   window.addEventListener('resize', resize); resize()
 
   const cfg = await (await fetch('/config.json')).json()
+  // remote update: show a one-tap installer when the live server has a newer version
+  if (cfg.update) {
+    const u = document.createElement('button')
+    u.id = 'updpill'
+    u.innerHTML = '<span class="ud"></span> Update to v' + cfg.update
+    u.style.cssText = 'position:fixed;z-index:30;left:50%;bottom:64px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:9px 16px;border:1px solid var(--a);border-radius:22px;background:rgba(9,14,26,.85);backdrop-filter:blur(10px);color:var(--ink);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;box-shadow:0 8px 30px rgba(0,0,0,.4)'
+    u.querySelector('.ud').style.cssText = 'width:8px;height:8px;border-radius:50%;background:var(--ok,#38d996);box-shadow:0 0 10px var(--ok,#38d996)'
+    u.onclick = async () => {
+      u.disabled = true; u.innerHTML = 'Updating…'
+      try {
+        const r = await (await fetch('/api/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).json()
+        u.innerHTML = r.ok ? (r.restart ? 'Updated. Restart the app.' : 'Updated. Reloading…') : 'Update failed'
+        if (r.ok && !r.restart) setTimeout(() => location.reload(true), 900)
+      } catch (e) { u.innerHTML = 'Update failed' }
+    }
+    document.body.appendChild(u)
+  }
   const A = cfg.accent || '#5b8bff', A2 = cfg.accent2 || '#8f6bff'
   document.documentElement.style.setProperty('--a', A)
   document.documentElement.style.setProperty('--a2', A2)

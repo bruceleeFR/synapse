@@ -703,6 +703,7 @@ class State:
     vaults = ["."]
     vidx = 0
     licensed = False
+    update = None
 
 def make_handler():
     class H(http.server.SimpleHTTPRequestHandler):
@@ -732,6 +733,7 @@ def make_handler():
                 safe["demo"] = bool(State.config.get("demo"))
                 safe["licensed"] = bool(State.licensed)
                 safe["version"] = VERSION
+                safe["update"] = State.update
                 return self._send(200, json.dumps(safe))
             # license gate: brain data + API stay locked until activated (public demo is exempt)
             if (path.startswith("/api/") or path == "/graph.json") and not State.config.get("demo") and not State.licensed:
@@ -988,9 +990,12 @@ def main():
     else:
         print("  license  : NOT activated — the app is locked. Activate with a key from Jonathan (Skool),")
         print("             either in the browser gate or:  python3 synapse.py --activate LAMARCA-XXXXXX")
-    upd = update_available()
-    if upd:
-        print(f"  update   : v{upd} available — POST /api/update or use the in-app Update button")
+    def _bg_update_check():
+        u = update_available()
+        if u:
+            State.update = u
+            print(f"  update   : v{u} available — POST /api/update or use the in-app Update button")
+    threading.Thread(target=_bg_update_check, daemon=True).start()   # non-blocking, so startup is never delayed
     Handler = make_handler()
     socketserver.ThreadingTCPServer.allow_reuse_address = True
     # auto-pick a free port
