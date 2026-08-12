@@ -9,9 +9,13 @@ Every note is a node. Every `[[link]]` is a synapse. No database, no build step,
 </p>
 
 <p align="center">
+  <a href="https://synapse.jonathanlamarca.fr"><b>Try the live demo →</b></a>
+  &nbsp;·&nbsp;
   <a href="https://github.com/bruceleeFR/synapse/releases/latest">Download for Windows, macOS, Linux</a>
   &nbsp;·&nbsp; MIT licensed &nbsp;·&nbsp; 100% local
 </p>
+
+<p align="center"><sub>The demo runs on a sample brain. Download it to point SYNAPSE at <b>your own</b> notes, with full voice JARVIS, private and offline.</sub></p>
 
 ---
 
