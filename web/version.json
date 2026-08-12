@@ -11,6 +11,7 @@
     "version.json",
     "vendor/three.min.js",
     "vendor/OrbitControls.js",
-    "synapse.py"
+    "synapse.py",
+    "lamarca-os-prompt.md"
   ]
 }

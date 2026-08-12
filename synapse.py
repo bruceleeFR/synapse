@@ -791,6 +791,8 @@ def make_handler():
             if not State.config.get("demo") and not State.licensed:
                 return self._send(403, json.dumps({"error": "license required", "licensed": False}))
             if path == "/api/update":
+                if State.config.get("demo"):   # the public demo never self-updates or writes files
+                    return self._send(403, json.dumps({"ok": False, "error": "disabled on the public demo"}))
                 return self._send(200, json.dumps(apply_update()))
             if path == "/api/ask":
                 out = jarvis_answer(State.graph, State.vault, data.get("q", ""), State.config, data.get("model", ""), data.get("lang", ""), data.get("key", ""))

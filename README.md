@@ -57,7 +57,7 @@ SYNAPSE has a second face: a full screen spatial interface you drive with your v
 - **Control it with your hands.** Turn on the camera and a blue mesh tracks your hand: open palm to orbit, pinch to open a panel, two hands to zoom, fist to release. Works on phone and desktop.
 - The same hand control also drives the 3D brain: open palm to orbit the galaxy, pinch to open the node under your finger.
 
-Try it in the [live demo](https://synapse.jonathanlamarca.fr/nexus.html), no install.
+**Build your own.** Download the [LAMARCA OS build prompt](docs/lamarca-os-prompt.md), paste it into your AI (Claude or GPT), and it constructs the whole spatial interface as a single file that runs on your machine. See it [live](https://synapse.jonathanlamarca.fr/nexus.html) first for inspiration.
 
 ## Quick start
 
