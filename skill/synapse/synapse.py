@@ -710,6 +710,7 @@ def make_handler():
             self.send_response(code)
             self.send_header("Content-Type", ctype)
             self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Cache-Control", "no-cache, must-revalidate")
             self.end_headers()
             self.wfile.write(body if isinstance(body, bytes) else body.encode())
         def do_GET(self):

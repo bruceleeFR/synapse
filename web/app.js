@@ -899,6 +899,13 @@
 
   // language switcher + copyright
   document.querySelectorAll('.langopt').forEach(o => o.onclick = () => setLang(o.dataset.lang))
+  // guide / help (self-explaining, skippable, language changeable inside)
+  { const g = $('#guide'), openG = () => g && g.classList.add('open'), closeG = () => g && g.classList.remove('open')
+    const hb = $('#help'); if (hb) hb.onclick = openG
+    const wg = $('#wguide'); if (wg) wg.onclick = openG
+    const gc = $('#gclose'); if (gc) gc.onclick = closeG
+    if (g) g.addEventListener('click', e => { if (e.target.id === 'guide') closeG() })
+    window.addEventListener('keydown', e => { if (e.key === 'Escape') closeG() }) }
   { const cr = $('#credit'), wc = $('#wcredit'); if (cr) cr.href = LINKEDIN; if (wc) wc.href = LINKEDIN }
   applyLang()
 
