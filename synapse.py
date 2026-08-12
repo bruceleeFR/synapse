@@ -796,9 +796,23 @@ def make_handler():
                 self._send(200, f.read(), ctype)
     return H
 
+def gen_key():
+    import random
+    AL = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    p = "".join(random.choice(AL) for _ in range(5))
+    s = sum((AL.index(c) + 1) * (i + 2) for i, c in enumerate(p))
+    return "LAMARCA-" + p + AL[s % len(AL)]
+
 def main():
     import urllib.parse
     args = sys.argv[1:]
+    if "--genkey" in args:
+        n = 1
+        for a in args:
+            if a.isdigit(): n = min(200, int(a))
+        for _ in range(n):
+            print(gen_key())
+        return
     vaults = []
     port = 4711
     do_open = True

@@ -267,6 +267,20 @@
   .creditline:hover{opacity:1;color:var(--a)}
   .wcredit{display:block;margin-bottom:12px;font-size:12px;color:var(--dim);text-decoration:none}
   .wcredit:hover{color:var(--a)}
+  #license{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:20px;background:radial-gradient(800px 600px at 50% 40%,rgba(20,40,90,.6),rgba(3,5,12,.98));backdrop-filter:blur(10px)}
+  #license.open{display:flex}
+  .licbox{width:min(420px,94vw);text-align:center;background:rgba(9,14,26,.97);border:1px solid var(--line);border-radius:20px;padding:34px 30px;box-shadow:0 30px 90px rgba(0,0,0,.7)}
+  .licbox .wlogo{width:46px;height:46px;border-radius:12px;margin:0 auto 16px;background:conic-gradient(from 0deg,var(--a),var(--a2),var(--a));box-shadow:0 0 24px rgba(91,139,255,.6);position:relative}
+  .licbox .wlogo::after{content:"";position:absolute;inset:8px;border-radius:7px;background:#04070f}
+  .licbox h2{font-size:22px;margin-bottom:8px}
+  .licbox p{color:var(--dim);font-size:14px;margin-bottom:18px}
+  .licbox #licin{width:100%;padding:13px 14px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--ink);font:inherit;font-size:16px;text-align:center;letter-spacing:.1em;text-transform:uppercase;outline:none}
+  .licbox #licin:focus{border-color:var(--a)}
+  .licbox #licgo{width:100%;margin-top:12px;padding:13px;border-radius:11px;border:0;background:linear-gradient(120deg,var(--a),var(--a2));color:#fff;font:inherit;font-weight:700;font-size:15px;cursor:pointer}
+  .licbox .licmsg{min-height:18px;margin-top:10px;font-size:12.5px;color:#ff6b6b}
+  .licbox #licget{display:block;margin-top:16px;font-size:13px;color:var(--a);text-decoration:none}
+  .licbox #licget:hover{text-decoration:underline}
+  .licbox .liccredit{display:block;margin-top:18px;font-size:11px;color:#5a6b8c;text-decoration:none}
   /* boot overlay */
   #boot{position:fixed;inset:0;z-index:40;background:radial-gradient(900px 600px at 50% 45%,rgba(20,40,90,.5),var(--bg));
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .7s}
@@ -293,6 +307,16 @@
   }
 </style>
 
+<div id="license"><div class="licbox">
+  <div class="wlogo"></div>
+  <h2 data-t="lic_title">Activate SYNAPSE</h2>
+  <p data-t="lic_desc">Enter your license key to unlock your brain.</p>
+  <input id="licin" placeholder="LAMARCA-XXXXXX" autocomplete="off" spellcheck="false">
+  <button id="licgo" data-t="lic_activate">Activate</button>
+  <div class="licmsg" id="licmsg"></div>
+  <a id="licget" target="_blank" rel="noopener" data-t="lic_get">No key? DM Jonathan Lamarca on Skool to get one.</a>
+  <a class="liccredit" id="liccreditlink" target="_blank" rel="noopener"><span data-t="credit">Created by Jonathan Lamarca</span></a>
+</div></div>
 <canvas id="fx"></canvas>
 <div class="grid"></div>
 <canvas id="g"></canvas>
@@ -441,4 +465,5 @@
 </div>
 
 <script src="/i18n.js"></script>
+<script src="/license.js"></script>
 <script src="/app.js"></script>
