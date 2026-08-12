@@ -26,6 +26,12 @@
     inp.onkeydown = e => { if (e.key === 'Enter') go() }
     setTimeout(() => inp.focus(), 60)
   }
-  function boot() { if (window.SYN_applyLang) window.SYN_applyLang(); if (!activated()) showGate() }
+  function boot() {
+    if (window.SYN_applyLang) window.SYN_applyLang()
+    if (activated()) return
+    showGate()
+    // Public demo instances lift the gate so visitors can explore the live product.
+    fetch('/config.json').then(r => r.json()).then(c => { if (c.demo) { const el = document.getElementById('license'); if (el) el.classList.remove('open') } }).catch(() => { })
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot()
 })()

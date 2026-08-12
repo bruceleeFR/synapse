@@ -122,7 +122,7 @@ def load_config(vault):
            "persona": "JARVIS, a calm, precise British butler assistant",
            "humor": 25, "model": "gpt-4o-mini", "provider": "openai",
            "openrouter_key": "", "ai_key": "", "voice": "British",
-           "allow_os": False, "strict": False, "realtime": False,
+           "allow_os": False, "strict": False, "realtime": False, "demo": False,
            "hue_bridge": "", "hue_user": "", "hue_lights": []}
     for base in (vault, ROOT):
         p = os.path.join(base, "config.json")
@@ -135,6 +135,8 @@ def load_config(vault):
 
 # ----------------------------------------------------------------------------- jarvis
 def env_key():
+    if os.environ.get("SYNAPSE_DEMO") == "1":
+        return None  # never lend a paid key to an unauthenticated public demo
     if os.environ.get("OPENAI_API_KEY"):
         return os.environ["OPENAI_API_KEY"]
     if os.path.exists("/etc/citerank-api.env"):
@@ -357,7 +359,18 @@ def jarvis_answer(graph, vault, question, cfg, model="", lang=""):
     hits = retrieve(graph, vault, q)
     key = cfg.get("ai_key") or cfg.get("openrouter_key") or env_key()
     if not key:
-        return {"answer": "Add an AI key to config.json and I will answer out loud. Meanwhile, here are the notes most related.", "spoken": "Add an A I key and I will answer.", "sources": [{"id": h["id"], "title": h["title"]} for h in hits], "focus": [h["id"] for h in hits[:3]]}
+        if hits:
+            top = hits[0]
+            lines = [ln for ln in note_text(vault, top["id"]).splitlines()
+                     if ln.strip() and not ln.lstrip().startswith("#") and not re.match(r"^\s*(#\w+\s*)+$", ln)]
+            body = re.sub(r"\s+", " ", re.sub(r"[*`>\[\]]", "", " ".join(lines))).strip()
+            snippet = " ".join(re.split(r"(?<=[.!?]) ", body)[:2])[:320]
+            ans = f"From your note “{top['title']}”: {snippet}"
+            if cfg.get("demo"):
+                ans += "  ·  This is the live demo — download SYNAPSE and add your own key for full spoken answers."
+        else:
+            ans = "I could not find a note about that yet. Try Brain Gaps, or capture a new thought."
+        return {"answer": ans, "spoken": ans, "sources": [{"id": h["id"], "title": h["title"]} for h in hits], "focus": [h["id"] for h in hits[:3]]}
     context = "\n\n".join(f"### {h['title']} ({h['id']})\n{note_text(vault, h['id'])[:1400]}" for h in hits) or "No notes matched."
     learn = (" If, from the user's question, you learned a durable fact about them (a preference, a project, "
              "a person, a goal), end your reply with one final line starting exactly with 'MEMORY:' and that single fact. "
@@ -712,6 +725,7 @@ def make_handler():
                 safe["realtime"] = bool(State.config.get("realtime") and safe["jarvis"])
                 safe["allow_os"] = bool(State.config.get("allow_os"))
                 safe["hue"] = bool(State.config.get("hue_bridge") and State.config.get("hue_user"))
+                safe["demo"] = bool(State.config.get("demo"))
                 return self._send(200, json.dumps(safe))
             if path == "/rescan":
                 State.graph = scan(State.vault)
@@ -816,10 +830,12 @@ def main():
     vaults = []
     port = 4711
     do_open = True
+    demo_mode = False
     i = 0
     while i < len(args):
         if args[i] == "--port": port = int(args[i + 1]); i += 2
         elif args[i] == "--no-open": do_open = False; i += 1
+        elif args[i] == "--demo": demo_mode = True; i += 1
         else: vaults.append(args[i]); i += 1
     if not vaults:
         sample = os.path.join(ROOT, "sample")
@@ -831,6 +847,11 @@ def main():
     State.vidx = 0
     vault = State.vault = State.vaults[0]
     State.config = load_config(vault)
+    if demo_mode:
+        State.config["demo"] = True
+        State.config["allow_os"] = False  # never let a public demo touch the host
+        State.config["ai_key"] = ""; State.config["openrouter_key"] = ""
+        os.environ["SYNAPSE_DEMO"] = "1"   # env_key() returns None -> extractive JARVIS only
     State.graph = scan(vault)
     print(f"  SYNAPSE  ·  {State.config.get('name')}")
     print(f"  vault    : {os.path.abspath(vault)}")
