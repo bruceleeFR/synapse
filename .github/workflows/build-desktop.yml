@@ -1,0 +1,40 @@
+name: build-desktop
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: SYNAPSE-windows
+          - os: macos-latest
+            artifact: SYNAPSE-mac
+          - os: ubuntu-latest
+            artifact: SYNAPSE-linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+      - name: Build
+        run: pyinstaller synapse.spec
+      - name: Package macOS app
+        if: matrix.os == 'macos-latest'
+        run: cd dist && zip -r SYNAPSE-mac.zip SYNAPSE.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            dist/SYNAPSE
+            dist/SYNAPSE.exe
+            dist/SYNAPSE-mac.zip
+          if-no-files-found: ignore

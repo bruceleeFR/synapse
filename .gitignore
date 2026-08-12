@@ -1,0 +1,17 @@
+# build artifacts
+dist/
+build/synapse/
+build/_work/
+*.spec.bak
+synapse-skill.zip
+
+# python
+__pycache__/
+*.pyc
+
+# internal / not for publication
+THEIRS-FEATURES.md
+sample-vault-2/
+
+# os
+.DS_Store
