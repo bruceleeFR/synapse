@@ -254,7 +254,7 @@
     $('#jarvis').classList.add('open')
     const log = $('#jlog'); const hint = log.querySelector('.hint'); if (hint) hint.remove()
     const wrap = document.createElement('div'); wrap.className = 'msg a'
-    if (!ghosts.length) { wrap.innerHTML = '<b>Brain Gaps</b><br>Your brain is well connected. No obvious missing links right now.'; log.appendChild(wrap); btn.classList.remove('live'); return }
+    if (!ghosts.length) { wrap.innerHTML = '<b>'+T('gaps')+'</b><br>Your brain is well connected. No obvious missing links right now.'; log.appendChild(wrap); btn.classList.remove('live'); return }
     wrap.innerHTML = `<b>Brain Gaps</b><br>I found ${ghosts.length} connection${ghosts.length > 1 ? 's' : ''} your brain is missing. Tap one to fly there.`
     const list = document.createElement('div'); list.className = 'gaps'
     ghosts.forEach(g => {
@@ -274,7 +274,7 @@
     const r = await (await fetch('/api/briefing')).json()
     $('#jarvis').classList.add('open')
     const log = $('#jlog'); const hint = log.querySelector('.hint'); if (hint) hint.remove()
-    const el = document.createElement('div'); el.className = 'msg a'; el.innerHTML = '<b>Daily Briefing</b><br>' + (r.answer || '')
+    const el = document.createElement('div'); el.className = 'msg a'; el.innerHTML = '<b>'+T('l_brief')+'</b><br>' + (r.answer || '')
     log.appendChild(el); log.scrollTop = log.scrollHeight
     flyFire(r.focus); speak(r.spoken || r.answer)
   }
@@ -300,7 +300,7 @@
   async function runRediscover() {
     const r = await (await fetch('/api/rediscover')).json()
     $('#jarvis').classList.add('open'); const log = $('#jlog'); const hint = log.querySelector('.hint'); if (hint) hint.remove()
-    const el = document.createElement('div'); el.className = 'msg a'; el.innerHTML = '<b>Rediscover</b><br>' + (r.answer || '')
+    const el = document.createElement('div'); el.className = 'msg a'; el.innerHTML = '<b>'+T('l_redis')+'</b><br>' + (r.answer || '')
     if (r.sources && r.sources[0]) { const s = document.createElement('div'); s.className = 'src'; const b = document.createElement('span'); b.textContent = r.sources[0].title; b.onclick = () => { const m = nodes.get(r.sources[0].id); if (m) { flyFire([m.id]); openNode(m) } }; s.appendChild(b); el.appendChild(s) }
     log.appendChild(el); log.scrollTop = log.scrollHeight; flyFire(r.focus); speak(r.spoken || r.answer)
   }
@@ -549,14 +549,14 @@
     const hubs = (s.topHubs || []).map(h => `<div class="frow"><span>${h.title}</span><b>${h.deg} links</b></div>`).join('') || '<div class="hint">none yet</div>'
     $('#statsBody').innerHTML =
       `<div class="snums">
-         <div class="snum"><b>${s.notes}</b><span>notes</span></div>
-         <div class="snum"><b>${s.links}</b><span>links</span></div>
-         <div class="snum"><b>${(s.words / 1000).toFixed(1)}k</b><span>words</span></div>
-         <div class="snum"><b>${s.orphans}</b><span>floating</span></div>
+         <div class="snum"><b>${s.notes}</b><span>${T('notes')}</span></div>
+         <div class="snum"><b>${s.links}</b><span>${T('links')}</span></div>
+         <div class="snum"><b>${(s.words / 1000).toFixed(1)}k</b><span>${T('s_words')}</span></div>
+         <div class="snum"><b>${s.orphans}</b><span>${T('s_floating')}</span></div>
        </div>
-       <div class="slbl">Growth</div><div class="growth">${bars}</div>
-       <div class="slbl">Busiest areas</div>${frows}
-       <div class="slbl">Top hubs</div>${hubs}`
+       <div class="slbl">${T('s_growth')}</div><div class="growth">${bars}</div>
+       <div class="slbl">${T('s_areas')}</div>${frows}
+       <div class="slbl">${T('s_hubs')}</div>${hubs}`
     $('#stats').classList.add('open')
   }
 
@@ -620,7 +620,7 @@
   function renderTasks(items) {
     $('#jarvis').classList.add('open')
     const log = $('#jlog'); const hint = log.querySelector('.hint'); if (hint) hint.remove()
-    const wrap = document.createElement('div'); wrap.className = 'msg a'; wrap.innerHTML = `<b>Open tasks (${items.length})</b>`
+    const wrap = document.createElement('div'); wrap.className = 'msg a'; wrap.innerHTML = `<b>${T('l_tasks')} (${items.length})</b>`
     const list = document.createElement('div'); list.className = 'gaps'
     items.forEach(it => { const row = document.createElement('div'); row.className = 'gap'; row.innerHTML = `<span>${it.task}</span><small>in ${it.title}</small>`; row.onclick = () => { const m = nodes.get(it.id); if (m) { flyFire([it.id]); openNode(m) } }; list.appendChild(row) })
     wrap.appendChild(list); log.appendChild(wrap); log.scrollTop = log.scrollHeight
@@ -641,7 +641,7 @@
         r.sources.forEach(so => { const b = document.createElement('span'); b.textContent = so.title; b.onclick = () => { const m = nodes.get(so.id); if (m) { flyFire([so.id]); openNode(m) } }; s.appendChild(b) })
         el.appendChild(s)
       }
-      if (r.learned) { const b = document.createElement('div'); b.className = 'learned'; b.textContent = '🧠 Remembered: ' + r.learned; el.appendChild(b) }
+      if (r.learned) { const b = document.createElement('div'); b.className = 'learned'; b.textContent = '🧠 '+T('l_remember')+': ' + r.learned; el.appendChild(b) }
       if (r.card && r.card.items && r.card.items.length) {
         const c = document.createElement('div'); c.className = 'card'
         c.innerHTML = '<button class="cardx" title="Dismiss">×</button><b>' + (r.card.title || 'What I found') + '</b>' + r.card.items.map(it => `<a href="${it.url}" target="_blank" rel="noopener">${it.title}<small>${(it.url || '').slice(0, 60)}</small></a>`).join('')
@@ -668,7 +668,7 @@
     const r = await (await fetch('/api/today')).json()
     $('#jarvis').classList.add('open')
     const log = $('#jlog'); const hint = log.querySelector('.hint'); if (hint) hint.remove()
-    const el = document.createElement('div'); el.className = 'msg a'; el.innerHTML = "<b>Today's focus</b><br>" + (r.answer || '').replace(/\n/g, '<br>')
+    const el = document.createElement('div'); el.className = 'msg a'; el.innerHTML = '<b>'+T('today')+'</b><br>' + (r.answer || '').replace(/\n/g, '<br>')
     log.appendChild(el); log.scrollTop = log.scrollHeight
     flyFire(r.focus); speak(r.spoken || r.answer)
   }
@@ -712,7 +712,7 @@
     setpop.classList.toggle('open')
     if (setpop.classList.contains('open')) { $('#setPersona').value = cfg.persona || ''; $('#setHumor').value = cfg.humor ?? 25; $('#humVal').textContent = cfg.humor ?? 25; $('#setModel').value = cfg.model || ''; updateConn(cfg.jarvis) }
   }
-  function updateConn(ok) { const c = $('#conn'); if (!c) return; c.classList.toggle('ok', !!ok); $('#connTxt').textContent = ok ? 'Brain connected' : 'No brain connected yet' }
+  function updateConn(ok) { const c = $('#conn'); if (!c) return; c.classList.toggle('ok', !!ok); $('#connTxt').textContent = ok ? T('t_conn1') : T('t_conn0') }
   $('#setHumor').addEventListener('input', e => $('#humVal').textContent = e.target.value)
   $('#setSave').onclick = async () => {
     const body = { persona: $('#setPersona').value, humor: +$('#setHumor').value, model: $('#setModel').value }
@@ -741,7 +741,7 @@
   function callEnd() { callActive = false; try { callRec && callRec.stop() } catch (e) { } try { speechSynthesis.cancel() } catch (e) { } stopMeter(); realtimeEnd(); $('#call').classList.remove('open') }
   // GPT Realtime: low-latency native voice call over WebRTC
   async function realtimeCall() {
-    $('#call').classList.add('open'); $('#ccap').textContent = 'Realtime voice'; setCallState('speaking', 'Connecting')
+    $('#call').classList.add('open'); $('#ccap').textContent = 'Realtime voice'; setCallState('speaking', T('c_connecting'))
     try {
       const tok = await (await fetch('/api/realtime-token')).json()
       const key = tok.client_secret && tok.client_secret.value

@@ -144,6 +144,7 @@
   .wave b:nth-child(2n){animation-delay:.12s}.wave b:nth-child(3n){animation-delay:.24s}.wave b:nth-child(4n){animation-delay:.36s}.wave b:nth-child(5n){animation-delay:.08s}
   @keyframes wv{0%,100%{height:6px}50%{height:30px;opacity:1}}
   /* command palette */
+  .pfoot i{font-style:normal}
   #palette{position:fixed;inset:0;z-index:35;display:none;align-items:flex-start;justify-content:center;padding-top:14vh;background:rgba(4,7,15,.5);backdrop-filter:blur(4px)}
   #palette.open{display:flex}
   .pbox{width:min(600px,92vw);background:var(--glass2);border:1px solid var(--line);border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.6);overflow:hidden}
@@ -373,24 +374,24 @@
 <div class="pop" id="setpop">
   <h3>Tune JARVIS</h3>
   <div class="langrow"><button class="langopt" data-lang="en">EN</button><button class="langopt" data-lang="fr">FR</button><button class="langopt" data-lang="ru">RU</button><button class="langopt" data-lang="zh">中</button></div>
-  <div class="conn" id="conn"><span class="cd"></span><span id="connTxt">No brain connected</span></div>
-  <label>OpenAI key</label>
+  <div class="conn" id="conn"><span class="cd"></span><span id="connTxt" data-t="t_conn0">No brain connected</span></div>
+  <label data-t="t_okey">OpenAI key</label>
   <input type="password" id="setKey" placeholder="sk-…" autocomplete="off">
-  <label>OpenRouter key (optional, for Grok/Gemini)</label>
+  <label data-t="t_orkey">OpenRouter key (optional)</label>
   <input type="password" id="setOR" placeholder="sk-or-…" autocomplete="off">
-  <label>Persona</label>
+  <label data-t="t_persona">Persona</label>
   <textarea id="setPersona" rows="2"></textarea>
-  <label class="row"><span>Humor</span><span id="humVal">25</span></label>
+  <label class="row"><span data-t="t_humor">Humor</span><span id="humVal">25</span></label>
   <input type="range" id="setHumor" min="0" max="100" value="25">
-  <label>Model</label>
+  <label data-t="t_model">Model</label>
   <input type="text" id="setModel" placeholder="gpt-4o-mini or vendor/model">
-  <button id="setSave">Apply and connect</button>
+  <button id="setSave" data-t="t_apply">Apply and connect</button>
 </div>
 
 <div id="call">
   <div class="corb"><i></i><i></i><i></i><span></span></div>
   <div class="wave" id="wave"><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b></div>
-  <div class="cstate" id="cstate">Connecting…</div>
+  <div class="cstate" id="cstate" data-t="c_connecting">Connecting…</div>
   <div class="ccap" id="ccap"></div>
   <button id="callend" data-t="endcall">End call</button>
 </div>
@@ -398,7 +399,7 @@
 <div id="capture">
   <div class="cbox">
     <h3 data-t="cap_title">Capture a thought</h3>
-    <p>Type or speak anything. JARVIS files it in the right place, tags it and links it.</p>
+    <p data-t="cap_desc">Type or speak anything. JARVIS files it in the right place, tags it and links it.</p>
     <textarea id="cin" rows="3" placeholder="e.g. Idea: bundle the GEO audit with a monthly retainer for Balmont"></textarea>
     <div class="crow"><button id="cmic" title="Speak">🎙</button><button id="cgo" data-t="cap_btn">Capture</button></div>
     <div class="chint" id="chint"></div>
@@ -407,9 +408,9 @@
 
 <div id="palette">
   <div class="pbox">
-    <input id="pin" placeholder="Type a command, or search a note…" autocomplete="off">
+    <input id="pin" data-tp="p_ph" placeholder="Type a command, or search a note…" autocomplete="off">
     <div id="plist"></div>
-    <div class="pfoot"><span><kbd>↑↓</kbd> move</span><span><kbd>↵</kbd> run</span><span><kbd>esc</kbd> close</span></div>
+    <div class="pfoot"><span><kbd>↑↓</kbd> <i data-t="p_move">move</i></span><span><kbd>↵</kbd> <i data-t="p_run">run</i></span><span><kbd>esc</kbd> <i data-t="p_close">close</i></span></div>
   </div>
 </div>
 

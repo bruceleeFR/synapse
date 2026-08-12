@@ -89,6 +89,7 @@
   #call.listening .wave b{animation:wv 1.5s ease-in-out infinite;opacity:.35}
   .wave b:nth-child(2n){animation-delay:.12s}.wave b:nth-child(3n){animation-delay:.24s}.wave b:nth-child(4n){animation-delay:.36s}.wave b:nth-child(5n){animation-delay:.08s}
   @keyframes wv{0%,100%{height:6px}50%{height:30px;opacity:1}}
+  .pfoot i{font-style:normal}
   #palette{position:fixed;inset:0;z-index:35;display:none;align-items:flex-start;justify-content:center;padding-top:14vh;background:rgba(2,4,10,.55);backdrop-filter:blur(4px)}
   #palette.open{display:flex}
   .pbox{width:min(600px,92vw);background:rgba(9,14,26,.96);border:1px solid var(--line);border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.6);overflow:hidden}
@@ -289,29 +290,29 @@
 <div class="pop" id="setpop">
   <h3>Tune JARVIS</h3>
   <div class="langrow"><button class="langopt" data-lang="en">EN</button><button class="langopt" data-lang="fr">FR</button><button class="langopt" data-lang="ru">RU</button><button class="langopt" data-lang="zh">中</button></div>
-  <div class="conn" id="conn"><span class="cd"></span><span id="connTxt">No brain connected</span></div>
-  <label>OpenAI key</label><input type="password" id="setKey" placeholder="sk-…" autocomplete="off">
-  <label>OpenRouter key (optional)</label><input type="password" id="setOR" placeholder="sk-or-…" autocomplete="off">
-  <label>Persona</label><textarea id="setPersona" rows="2"></textarea>
-  <label class="row"><span>Humor</span><span id="humVal">25</span></label>
+  <div class="conn" id="conn"><span class="cd"></span><span id="connTxt" data-t="t_conn0">No brain connected</span></div>
+  <label data-t="t_okey">OpenAI key</label><input type="password" id="setKey" placeholder="sk-…" autocomplete="off">
+  <label data-t="t_orkey">OpenRouter key (optional)</label><input type="password" id="setOR" placeholder="sk-or-…" autocomplete="off">
+  <label data-t="t_persona">Persona</label><textarea id="setPersona" rows="2"></textarea>
+  <label class="row"><span data-t="t_humor">Humor</span><span id="humVal">25</span></label>
   <input type="range" id="setHumor" min="0" max="100" value="25">
-  <label>Model</label><input type="text" id="setModel" placeholder="gpt-4o-mini or vendor/model">
-  <button id="setSave">Apply and connect</button>
+  <label data-t="t_model">Model</label><input type="text" id="setModel" placeholder="gpt-4o-mini or vendor/model">
+  <button id="setSave" data-t="t_apply">Apply and connect</button>
 </div>
 
 <div id="call">
   <div class="corb"><i></i><i></i><i></i><span></span></div>
   <div class="wave" id="wave"><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b></div>
-  <div class="cstate" id="cstate">Connecting…</div>
+  <div class="cstate" id="cstate" data-t="c_connecting">Connecting…</div>
   <div class="ccap" id="ccap"></div>
   <button id="callend" data-t="endcall">End call</button>
 </div>
 
-<div id="palette"><div class="pbox"><input id="pin" placeholder="Type a command, or search a note…" autocomplete="off"><div id="plist"></div><div class="pfoot"><span><kbd>↑↓</kbd> move</span><span><kbd>↵</kbd> run</span><span><kbd>esc</kbd> close</span></div></div></div>
+<div id="palette"><div class="pbox"><input id="pin" data-tp="p_ph" placeholder="Type a command, or search a note…" autocomplete="off"><div id="plist"></div><div class="pfoot"><span><kbd>↑↓</kbd> <i data-t="p_move">move</i></span><span><kbd>↵</kbd> <i data-t="p_run">run</i></span><span><kbd>esc</kbd> <i data-t="p_close">close</i></span></div></div></div>
 
 <div id="capture"><div class="cbox">
   <h3 data-t="cap_title">Capture a thought</h3>
-  <p>Type or speak anything. JARVIS files it in the right place, tags it and links it.</p>
+  <p data-t="cap_desc">Type or speak anything. JARVIS files it in the right place, tags it and links it.</p>
   <textarea id="cin" rows="3" placeholder="e.g. Idea: bundle the GEO audit with a monthly retainer for Balmont"></textarea>
   <div class="crow"><button id="cmic" title="Speak">🎙</button><button id="cgo" data-t="cap_btn">Capture</button></div>
   <div class="chint" id="chint"></div>
@@ -590,7 +591,7 @@
       const r=await(await fetch('/api/ask',{method:'POST',body:JSON.stringify({q,lang:window.SYN_LANG()})})).json()
       el.innerHTML=(r.answer||'').replace(/[<>]/g,c=>({'<':'&lt;','>':'&gt;'}[c])).replace(/\n/g,'<br>')
       if(r.sources&&r.sources.length){const s=document.createElement('div');s.className='src';r.sources.forEach(so=>{const b=document.createElement('span');b.textContent=so.title;b.onclick=()=>focus3d([so.id]);s.appendChild(b)});el.appendChild(s)}
-      if(r.learned){const bb=document.createElement('div');bb.className='learned';bb.textContent='🧠 Remembered: '+r.learned;el.appendChild(bb)}
+      if(r.learned){const bb=document.createElement('div');bb.className='learned';bb.textContent='🧠 '+window.SYN_T('l_remember')+': '+r.learned;el.appendChild(bb)}
       if(r.card&&r.card.items&&r.card.items.length){const c=document.createElement('div');c.className='card';c.innerHTML='<button class="cardx" title="Dismiss">×</button><b>'+(r.card.title||'What I found')+'</b>'+r.card.items.map(it=>`<a href="${it.url}" target="_blank" rel="noopener">${it.title}<small>${(it.url||'').slice(0,60)}</small></a>`).join('');c.querySelector('.cardx').onclick=()=>c.remove();log.appendChild(c)}
       if(callActive)document.querySelector('#ccap').textContent=r.answer||''
       focus3d(r.focus);speak(r.spoken||r.answer);executeAction(r.action)
@@ -621,7 +622,7 @@
   function renderTasks(items){
     document.querySelector('#jarvis').classList.add('open')
     const log=document.querySelector('#jlog');const h=log.querySelector('.hint');if(h)h.remove()
-    const wrap=document.createElement('div');wrap.className='msg a';wrap.innerHTML=`<b>Open tasks (${items.length})</b>`
+    const wrap=document.createElement('div');wrap.className='msg a';wrap.innerHTML=`<b>${window.SYN_T('l_tasks')} (${items.length})</b>`
     const list=document.createElement('div');list.className='gaps'
     items.forEach(it=>{const row=document.createElement('div');row.className='gap';row.innerHTML=`<span>${it.task}</span><small>in ${it.title}</small>`;row.onclick=()=>focus3d([it.id]);list.appendChild(row)})
     wrap.appendChild(list);log.appendChild(wrap);log.scrollTop=log.scrollHeight
@@ -661,7 +662,7 @@
     const r=await(await fetch('/api/briefing')).json()
     document.querySelector('#jarvis').classList.add('open')
     const log=document.querySelector('#jlog');const h=log.querySelector('.hint');if(h)h.remove()
-    const el=document.createElement('div');el.className='msg a';el.innerHTML='<b>Daily Briefing</b><br>'+(r.answer||'')
+    const el=document.createElement('div');el.className='msg a';el.innerHTML='<b>'+window.SYN_T('l_brief')+'</b><br>'+(r.answer||'')
     log.appendChild(el);log.scrollTop=log.scrollHeight
     focus3d(r.focus);speak(r.spoken||r.answer)
   }
@@ -670,7 +671,7 @@
   async function runRediscover3d(){
     const r=await(await fetch('/api/rediscover')).json()
     document.querySelector('#jarvis').classList.add('open');const log=document.querySelector('#jlog');const h=log.querySelector('.hint');if(h)h.remove()
-    const el=document.createElement('div');el.className='msg a';el.innerHTML='<b>Rediscover</b><br>'+(r.answer||'')
+    const el=document.createElement('div');el.className='msg a';el.innerHTML='<b>'+window.SYN_T('l_redis')+'</b><br>'+(r.answer||'')
     if(r.sources&&r.sources[0]){const s=document.createElement('div');s.className='src';const bb=document.createElement('span');bb.textContent=r.sources[0].title;bb.onclick=()=>{const m=nodeById.get(r.sources[0].id);if(m)openNode3d(m)};s.appendChild(bb);el.appendChild(s)}
     log.appendChild(el);log.scrollTop=log.scrollHeight;focus3d(r.focus);speak(r.spoken||r.answer)
   }
@@ -678,7 +679,7 @@
     const r=await(await fetch('/api/today')).json()
     document.querySelector('#jarvis').classList.add('open')
     const log=document.querySelector('#jlog');const h=log.querySelector('.hint');if(h)h.remove()
-    const el=document.createElement('div');el.className='msg a';el.innerHTML="<b>Today's focus</b><br>"+(r.answer||'').replace(/\n/g,'<br>')
+    const el=document.createElement('div');el.className='msg a';el.innerHTML='<b>'+window.SYN_T('today')+'</b><br>'+(r.answer||'').replace(/\n/g,'<br>')
     log.appendChild(el);log.scrollTop=log.scrollHeight;focus3d(r.focus);speak(r.spoken||r.answer)
   }
   function openCapture(){document.querySelector('#capture').classList.add('open');setTimeout(()=>document.querySelector('#cin').focus(),30);document.querySelector('#chint').textContent=''}
@@ -704,7 +705,7 @@
     const bars=g.map(v=>`<div class="gbar" style="height:${Math.round(v/gmax*100)}%"></div>`).join('')
     const frows=fE.map(([f,c])=>`<div class="frow"><span>${f}</span><div class="fbar"><i style="width:${Math.round(c/fmax*100)}%"></i></div><b>${c}</b></div>`).join('')
     const hubs=(s.topHubs||[]).map(h=>`<div class="frow"><span>${h.title}</span><b>${h.deg} links</b></div>`).join('')||'<div class="hint">none yet</div>'
-    document.querySelector('#statsBody').innerHTML=`<div class="snums"><div class="snum"><b>${s.notes}</b><span>notes</span></div><div class="snum"><b>${s.links}</b><span>links</span></div><div class="snum"><b>${(s.words/1000).toFixed(1)}k</b><span>words</span></div><div class="snum"><b>${s.orphans}</b><span>floating</span></div></div><div class="slbl">Growth</div><div class="growth">${bars}</div><div class="slbl">Busiest areas</div>${frows}<div class="slbl">Top hubs</div>${hubs}`
+    document.querySelector('#statsBody').innerHTML=`<div class="snums"><div class="snum"><b>${s.notes}</b><span>${window.SYN_T('notes')}</span></div><div class="snum"><b>${s.links}</b><span>${window.SYN_T('links')}</span></div><div class="snum"><b>${(s.words/1000).toFixed(1)}k</b><span>${window.SYN_T('s_words')}</span></div><div class="snum"><b>${s.orphans}</b><span>${window.SYN_T('s_floating')}</span></div></div><div class="slbl">${window.SYN_T('s_growth')}</div><div class="growth">${bars}</div><div class="slbl">${window.SYN_T('s_areas')}</div>${frows}<div class="slbl">${window.SYN_T('s_hubs')}</div>${hubs}`
     document.querySelector('#stats').classList.add('open')
   }
   // multimodal: drop an image or a note to capture it
@@ -739,7 +740,7 @@
 
   // settings
   const setpop=document.querySelector('#setpop')
-  function updateConn(ok){const c=document.querySelector('#conn');if(!c)return;c.classList.toggle('ok',!!ok);document.querySelector('#connTxt').textContent=ok?'Brain connected':'No brain connected yet'}
+  function updateConn(ok){const c=document.querySelector('#conn');if(!c)return;c.classList.toggle('ok',!!ok);document.querySelector('#connTxt').textContent=ok?window.SYN_T('t_conn1'):window.SYN_T('t_conn0')}
   document.querySelector('#navset').onclick=()=>{setpop.classList.toggle('open');if(setpop.classList.contains('open')){document.querySelector('#setPersona').value=cfg.persona||'';document.querySelector('#setHumor').value=cfg.humor??25;document.querySelector('#humVal').textContent=cfg.humor??25;document.querySelector('#setModel').value=cfg.model||'';updateConn(cfg.jarvis)}}
   document.querySelector('#setHumor').addEventListener('input',e=>document.querySelector('#humVal').textContent=e.target.value)
   document.querySelector('#setSave').onclick=async()=>{const body={persona:document.querySelector('#setPersona').value,humor:+document.querySelector('#setHumor').value,model:document.querySelector('#setModel').value};if(document.querySelector('#setKey').value.trim())body.ai_key=document.querySelector('#setKey').value.trim();if(document.querySelector('#setOR').value.trim())body.openrouter_key=document.querySelector('#setOR').value.trim();cfg.persona=body.persona;cfg.humor=body.humor;cfg.model=body.model;const r=await(await fetch('/api/set',{method:'POST',body:JSON.stringify(body)})).json();cfg.jarvis=r.jarvis;updateConn(r.jarvis);document.querySelector('#setKey').value='';document.querySelector('#setOR').value='';setpop.classList.remove('open');const log=document.querySelector('#jlog');const h=log.querySelector('.hint');if(h)h.remove();log.insertAdjacentHTML('beforeend',`<div class="msg a"><b>JARVIS</b><br>${r.jarvis?'Connected and recalibrated. I am fully online.':'Settings saved. Add a key to bring me fully online.'}</div>`);log.scrollTop=log.scrollHeight}
