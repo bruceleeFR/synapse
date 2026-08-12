@@ -224,14 +224,17 @@ def vision_answer(cfg, image, q):
     except Exception as e:
         return {"answer": "Vision failed: " + str(e)[:160], "spoken": "I could not read the screen."}
 
-def system_prompt(cfg, memory):
+LANG_NAME = {"en": "English", "fr": "French", "ru": "Russian", "zh": "Chinese"}
+
+def system_prompt(cfg, memory, lang=""):
     persona = cfg.get("persona", "JARVIS, a calm British assistant")
     humor = int(cfg.get("humor", 25))
     tone = "Keep it witty and playful." if humor >= 70 else ("A light touch of dry wit is welcome." if humor >= 35 else "Stay crisp and professional.")
     mem = f"\n\nWhat you already know about the user:\n{memory}" if memory else ""
+    ln = f" Always answer in {LANG_NAME[lang]}." if lang in LANG_NAME and lang != "en" else ""
     return (f"You are {persona}. You are the voice of the user's personal second brain. "
             f"Answer from the provided notes (and web results when given). Be concise, direct, spoken aloud. "
-            f"{tone} If the notes do not cover it, say so plainly.{mem}")
+            f"{tone} If the notes do not cover it, say so plainly.{ln}{mem}")
 
 def scan_tasks(vault, graph, limit=24):
     out = []
@@ -321,7 +324,7 @@ def command_intent(q, cfg, graph, vault):
         return ack(head, head, {"type": "tasks", "items": items})
     return None
 
-def jarvis_answer(graph, vault, question, cfg, model=""):
+def jarvis_answer(graph, vault, question, cfg, model="", lang=""):
     q = (question or "").strip()
     ql = q.lower()
     memory = read_memory(vault)
@@ -347,7 +350,7 @@ def jarvis_answer(graph, vault, question, cfg, model=""):
         results = web_search(re.sub(r"^.*?(research|look up|search(?: the (?:web|internet))?|google)\s*", "", q, flags=re.I) or q)
         ctx = "\n".join(f"- {r['title']} ({r['url']})" for r in results) or "No results."
         ans = llm(cfg, model, [
-            {"role": "system", "content": system_prompt(cfg, memory) + " You just searched the live web. Summarise the answer in 2 or 3 sentences."},
+            {"role": "system", "content": system_prompt(cfg, memory, lang) + " You just searched the live web. Summarise the answer in 2 or 3 sentences."},
             {"role": "user", "content": f"Web results for '{q}':\n{ctx}\n\nAnswer the user's request."}]) or "I could not reach the model."
         return {"answer": ans, "spoken": ans, "sources": [], "focus": [], "card": {"kind": "web", "title": "What I found", "items": results}}
     # default: RAG over notes
@@ -360,7 +363,7 @@ def jarvis_answer(graph, vault, question, cfg, model=""):
              "a person, a goal), end your reply with one final line starting exactly with 'MEMORY:' and that single fact. "
              "Otherwise do not add that line.")
     ans = llm(cfg, model, [
-        {"role": "system", "content": system_prompt(cfg, memory) + " Cite the note titles you used." + learn},
+        {"role": "system", "content": system_prompt(cfg, memory, lang) + " Cite the note titles you used." + learn},
         {"role": "user", "content": f"Notes:\n{context}\n\nQuestion: {q}"}]) or "I could not reach the model."
     learned = None
     mm = re.search(r"(?mi)^MEMORY:\s*(.+?)\s*$", ans)
@@ -752,7 +755,7 @@ def make_handler():
             except Exception:
                 data = {}
             if path == "/api/ask":
-                out = jarvis_answer(State.graph, State.vault, data.get("q", ""), State.config, data.get("model", ""))
+                out = jarvis_answer(State.graph, State.vault, data.get("q", ""), State.config, data.get("model", ""), data.get("lang", ""))
                 return self._send(200, json.dumps(out))
             if path == "/api/switch":
                 idx = int(data.get("idx", 0))

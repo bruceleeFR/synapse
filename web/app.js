@@ -19,6 +19,8 @@
   if (cfg.name) { $('#brandName').textContent = cfg.name; document.title = cfg.name + ' · second brain' }
   let usage = {}; try { usage = JSON.parse(localStorage.getItem('synapse_usage') || '{}') } catch (e) { }
   const REDUCED = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)
+  // ---- i18n (shared, see i18n.js)
+  const T = window.SYN_T, applyLang = window.SYN_applyLang, setLang = window.SYN_setLang, LINKEDIN = window.SYN_LINKEDIN
   function bumpUsage(id) { usage[id] = (usage[id] || 0) + 1; try { localStorage.setItem('synapse_usage', JSON.stringify(usage)) } catch (e) { } }
 
   let G = await (await fetch('/graph.json')).json()
@@ -426,13 +428,13 @@
     $('#pTags').innerHTML = (n.tags || []).map(t => `<span class="tag">#${t}</span>`).join('')
     const out = [...(adj.get(n.id) || [])].map(id => nodes.get(id))
     const back = (n.backlinks || []).map(id => nodes.get(id)).filter(Boolean)
-    const linkHtml = arr => arr.length ? arr.map(m => `<div class="lnk" data-id="${encodeURIComponent(m.id)}"><span class="a">→</span>${m.title}</div>`).join('') : '<div class="hint">none</div>'
+    const linkHtml = arr => arr.length ? arr.map(m => `<div class="lnk" data-id="${encodeURIComponent(m.id)}"><span class="a">→</span>${m.title}</div>`).join('') : `<div class="hint">${T('none')}</div>`
     let body = ''
     const r = await (await fetch('/note?id=' + encodeURIComponent(n.id))).json()
     const clean = (r.text || '').replace(/^---[\s\S]*?---\n/, '').trim().slice(0, 1400)
     body += `<pre>${clean.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))}</pre>`
-    body += `<div class="lbl">Links out (${out.length})</div>${linkHtml(out)}`
-    body += `<div class="lbl">Backlinks (${back.length})</div>${linkHtml(back)}`
+    body += `<div class="lbl">${T('linksout')} (${out.length})</div>${linkHtml(out)}`
+    body += `<div class="lbl">${T('backlinks')} (${back.length})</div>${linkHtml(back)}`
     $('#pBody').innerHTML = body
     $('#panel').classList.add('open')
     $('#pBody').querySelectorAll('.lnk').forEach(el => el.onclick = () => { const m = nodes.get(decodeURIComponent(el.dataset.id)); if (m) { focus(m); openNode(m) } })
@@ -632,7 +634,7 @@
     log.insertAdjacentHTML('beforeend', `<div class="msg u"></div>`); log.lastChild.textContent = q
     log.insertAdjacentHTML('beforeend', `<div class="msg a">…</div>`); const el = log.lastChild; log.scrollTop = log.scrollHeight
     try {
-      const r = await (await fetch('/api/ask', { method: 'POST', body: JSON.stringify({ q }) })).json()
+      const r = await (await fetch('/api/ask', { method: 'POST', body: JSON.stringify({ q, lang: window.SYN_LANG() }) })).json()
       el.innerHTML = (r.answer || '').replace(/[<>]/g, c => ({ '<': '&lt;', '>': '&gt;' }[c])).replace(/\n/g, '<br>')
       if (r.sources && r.sources.length) {
         const s = document.createElement('div'); s.className = 'src'
@@ -728,7 +730,7 @@
   let callActive = false, callRec = null, callBusy = false
   $('#navcall').onclick = callStart
   $('#callend').onclick = callEnd
-  function setCallState(s, label) { const c = $('#call'); c.classList.remove('listening', 'thinking', 'speaking'); c.classList.add(s); $('#cstate').textContent = label || s }
+  function setCallState(s, label) { const c = $('#call'); c.classList.remove('listening', 'thinking', 'speaking'); c.classList.add(s); const K = { listening: 'st_listen', thinking: 'st_think', speaking: 'st_speak' }; $('#cstate').textContent = K[s] ? T(K[s]) : (label || s) }
   let rtpc = null, rtStream = null
   function callStart() {
     if (cfg.realtime) return realtimeCall()   // GPT Realtime engine when enabled
@@ -894,6 +896,11 @@
   $('#wtour').onclick = () => { $('#welcome').classList.remove('open'); try { localStorage.setItem('synapse_seen', '1') } catch (e) { } runTour() }
   $('#stats').addEventListener('click', e => { if (e.target.id === 'stats' || e.target.id === 'statsClose') $('#stats').classList.remove('open') })
   window.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('#palette').classList.contains('open') ? closePalette() : openPalette() } })
+
+  // language switcher + copyright
+  document.querySelectorAll('.langopt').forEach(o => o.onclick = () => setLang(o.dataset.lang))
+  { const cr = $('#credit'), wc = $('#wcredit'); if (cr) cr.href = LINKEDIN; if (wc) wc.href = LINKEDIN }
+  applyLang()
 
   build(); stat(); cam.x = W / 2; cam.y = H / 2; cam.z = REDUCED ? 0.72 : 0.28; draw()
   if (!REDUCED) setTimeout(() => animateCam(W / 2, H / 2, 0.72), 720)   // cinematic zoom-in reveal

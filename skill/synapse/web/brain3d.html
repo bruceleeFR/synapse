@@ -97,6 +97,11 @@
   .pitem{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;cursor:pointer;color:var(--ink);font-size:14px}
   .pitem .pk{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-left:auto}
   .pitem.sel,.pitem:hover{background:linear-gradient(100deg,rgba(91,139,255,.2),rgba(143,107,255,.14))}
+  .langrow{display:flex;gap:6px;margin:0 0 6px}
+  .langopt{flex:1;padding:6px 0;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--dim);font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+  .langopt:hover{color:var(--ink);border-color:var(--a)}.langopt.on{color:#fff;background:linear-gradient(120deg,var(--a),var(--a2));border-color:transparent}
+  .creditline{position:fixed;z-index:6;left:64px;bottom:14px;font-size:10.5px;color:#5a6b8c;text-decoration:none;opacity:.7}.creditline:hover{opacity:1;color:var(--a)}
+  .wcredit{display:block;margin-bottom:12px;font-size:12px;color:var(--dim);text-decoration:none}
   .pfoot{display:flex;gap:16px;padding:9px 16px;border-top:1px solid var(--line);color:var(--dim);font-size:11px}
   .pfoot kbd{border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-family:inherit}
   .panel{position:fixed;z-index:9;top:0;right:0;height:100%;width:min(400px,92vw);background:linear-gradient(180deg,rgba(10,16,30,.97),rgba(6,10,20,.99));border-left:1px solid var(--line);backdrop-filter:blur(16px);transform:translateX(102%);transition:transform .28s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,0,0,.5)}
@@ -226,39 +231,40 @@
 
 <nav class="rail" id="rail">
   <div class="brand"><span class="mk"></span><b id="brandName">SYNAPSE</b></div>
-  <div class="lab">View</div>
+  <div class="lab" data-t="view">View</div>
   <div class="grp">
-    <a class="ri" id="nav2d" href="/"><svg viewBox="0 0 24 24"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="15" r="3"/><path d="M10.5 10.5 13.5 13.5"/></svg><span>2D graph</span></a>
-    <button class="ri on" id="nav3d"><svg viewBox="0 0 24 24"><path d="M12 3 20 7.5V16.5L12 21 4 16.5V7.5Z"/><path d="M12 3v18M4 7.5l8 4.5 8-4.5"/></svg><span>3D brain</span></button>
+    <a class="ri" id="nav2d" href="/"><svg viewBox="0 0 24 24"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="15" r="3"/><path d="M10.5 10.5 13.5 13.5"/></svg><span data-t="g2d">2D graph</span></a>
+    <button class="ri on" id="nav3d"><svg viewBox="0 0 24 24"><path d="M12 3 20 7.5V16.5L12 21 4 16.5V7.5Z"/><path d="M12 3v18M4 7.5l8 4.5 8-4.5"/></svg><span data-t="g3d">3D brain</span></button>
   </div>
-  <div class="lab">Intelligence</div>
+  <div class="lab" data-t="intel">Intelligence</div>
   <div class="grp">
-    <button class="ri" id="jbtn"><svg viewBox="0 0 24 24"><path d="M12 3a5 5 0 0 1 5 5v1a4 4 0 0 1 0 8 5 5 0 0 1-10 0 4 4 0 0 1 0-8V8a5 5 0 0 1 5-5Z"/><path d="M12 8v9"/></svg><span>Ask JARVIS</span></button>
-    <button class="ri" id="navcapture"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Quick Capture</span></button>
-    <button class="ri" id="navtoday"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 6-6"/><path d="M21 12a9 9 0 1 1-6.2-8.5"/></svg><span>Today's Focus</span></button>
-    <button class="ri" id="navgaps"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7Z"/></svg><span>Brain Gaps</span></button>
-    <button class="ri" id="navvoice"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg><span>Voice</span></button>
-    <button class="ri" id="navvision"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg><span>See screen</span></button>
-    <button class="ri" id="navcall"><svg viewBox="0 0 24 24"><path d="M4 5c0 8 7 15 15 15l0-3.5a1.5 1.5 0 0 0-1.2-1.5l-2.6-.5a1.5 1.5 0 0 0-1.5.6l-.6.8A11 11 0 0 1 8 9.5l.8-.6a1.5 1.5 0 0 0 .6-1.5l-.5-2.6A1.5 1.5 0 0 0 7.5 3.5L4 3.5Z"/></svg><span>Call JARVIS</span></button>
+    <button class="ri" id="jbtn"><svg viewBox="0 0 24 24"><path d="M12 3a5 5 0 0 1 5 5v1a4 4 0 0 1 0 8 5 5 0 0 1-10 0 4 4 0 0 1 0-8V8a5 5 0 0 1 5-5Z"/><path d="M12 8v9"/></svg><span data-t="ask">Ask JARVIS</span></button>
+    <button class="ri" id="navcapture"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span data-t="capture">Quick Capture</span></button>
+    <button class="ri" id="navtoday"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 6-6"/><path d="M21 12a9 9 0 1 1-6.2-8.5"/></svg><span data-t="today">Today's Focus</span></button>
+    <button class="ri" id="navgaps"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7Z"/></svg><span data-t="gaps">Brain Gaps</span></button>
+    <button class="ri" id="navvoice"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg><span data-t="voice">Voice</span></button>
+    <button class="ri" id="navvision"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg><span data-t="vision">See screen</span></button>
+    <button class="ri" id="navcall"><svg viewBox="0 0 24 24"><path d="M4 5c0 8 7 15 15 15l0-3.5a1.5 1.5 0 0 0-1.2-1.5l-2.6-.5a1.5 1.5 0 0 0-1.5.6l-.6.8A11 11 0 0 1 8 9.5l.8-.6a1.5 1.5 0 0 0 .6-1.5l-.5-2.6A1.5 1.5 0 0 0 7.5 3.5L4 3.5Z"/></svg><span data-t="call">Call JARVIS</span></button>
   </div>
   <div class="grp push">
     <button class="ri" id="rot"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4h-4"/></svg><span>Auto-rotate</span></button>
     <button class="ri" id="fit"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span>Reset view</span></button>
-    <button class="ri" id="navexport"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span>Export PNG</span></button>
-    <button class="ri" id="navcmd"><svg viewBox="0 0 24 24"><path d="M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3Z"/></svg><span>Commands ⌘K</span></button>
-    <button class="ri" id="navset"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg><span>Tune JARVIS</span></button>
+    <button class="ri" id="navexport"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span data-t="exportp">Export PNG</span></button>
+    <button class="ri" id="navcmd"><svg viewBox="0 0 24 24"><path d="M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3Z"/></svg><span data-t="commands">Commands ⌘K</span></button>
+    <button class="ri" id="navset"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg><span data-t="tune">Tune JARVIS</span></button>
   </div>
 </nav>
 
 <div class="hud">
   <span class="dot"></span>
-  <div class="stx"><b style="color:#38d996">ONLINE</b><span>System</span></div>
-  <div class="stx"><b id="hNotes">0</b><span>Notes</span></div>
-  <div class="stx"><b id="hLinks">0</b><span>Links</span></div>
+  <div class="stx"><b style="color:#38d996" data-t="online">ONLINE</b><span data-t="system">System</span></div>
+  <div class="stx"><b id="hNotes">0</b><span data-t="notes">Notes</span></div>
+  <div class="stx"><b id="hLinks">0</b><span data-t="links">Links</span></div>
 </div>
 
 <div class="pop" id="setpop">
   <h3>Tune JARVIS</h3>
+  <div class="langrow"><button class="langopt" data-lang="en">EN</button><button class="langopt" data-lang="fr">FR</button><button class="langopt" data-lang="ru">RU</button><button class="langopt" data-lang="zh">中</button></div>
   <div class="conn" id="conn"><span class="cd"></span><span id="connTxt">No brain connected</span></div>
   <label>OpenAI key</label><input type="password" id="setKey" placeholder="sk-…" autocomplete="off">
   <label>OpenRouter key (optional)</label><input type="password" id="setOR" placeholder="sk-or-…" autocomplete="off">
@@ -274,16 +280,16 @@
   <div class="wave" id="wave"><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b></div>
   <div class="cstate" id="cstate">Connecting…</div>
   <div class="ccap" id="ccap"></div>
-  <button id="callend">End call</button>
+  <button id="callend" data-t="endcall">End call</button>
 </div>
 
 <div id="palette"><div class="pbox"><input id="pin" placeholder="Type a command, or search a note…" autocomplete="off"><div id="plist"></div><div class="pfoot"><span><kbd>↑↓</kbd> move</span><span><kbd>↵</kbd> run</span><span><kbd>esc</kbd> close</span></div></div></div>
 
 <div id="capture"><div class="cbox">
-  <h3>Capture a thought</h3>
+  <h3 data-t="cap_title">Capture a thought</h3>
   <p>Type or speak anything. JARVIS files it in the right place, tags it and links it.</p>
   <textarea id="cin" rows="3" placeholder="e.g. Idea: bundle the GEO audit with a monthly retainer for Balmont"></textarea>
-  <div class="crow"><button id="cmic" title="Speak">🎙</button><button id="cgo">Capture</button></div>
+  <div class="crow"><button id="cmic" title="Speak">🎙</button><button id="cgo" data-t="cap_btn">Capture</button></div>
   <div class="chint" id="chint"></div>
 </div></div>
 
@@ -296,7 +302,7 @@
 <div id="welcome">
   <div class="wbox">
     <div class="wlogo"></div>
-    <h2>Your notes, alive.</h2>
+    <h2 data-t="wtitle">Your notes, alive.</h2>
     <p>This is your notes as a 3D brain. Every note is a glowing node, every link a synapse firing between them.</p>
     <ul>
       <li><b>Click a node</b> to read the note and its connections.</li>
@@ -304,13 +310,14 @@
       <li><b>Brain Gaps</b> reveals links your notes are missing.</li>
       <li><b>Press ⌘K</b> for commands and to jump to any note.</li>
     </ul>
-    <div class="wbtns"><button id="wgo">Explore my brain</button><button id="wtour" class="ghost">Take the tour</button></div>
+    <div class="wbtns"><button id="wgo" data-t="wexplore">Explore my brain</button><button id="wtour" class="ghost" data-t="wtour">Take the tour</button></div>
   </div>
 </div>
 
 <div id="stats"><div class="stbox"><button class="x" id="statsClose">×</button><h3>Your brain</h3><div id="statsBody"></div></div></div>
 <div id="drop"><div class="dbox"><div class="dico">⬇</div><div id="dropText">Drop an image or a note to capture it</div></div></div>
 
+<a class="creditline" id="credit" target="_blank" rel="noopener"><span data-t="credit">Created by Jonathan Lamarca</span></a>
 <div id="label"></div>
 <div id="hint">drag to orbit · scroll to zoom · click a node to read it</div>
 <span id="stat" style="display:none"></span>
@@ -321,13 +328,14 @@
   <div class="ji">
     <button id="jmic" title="Push to talk">🎙</button>
     <button id="jhands" title="Hands-free">👂</button>
-    <input id="jq" placeholder="Ask, or tap the mic…">
-    <button id="jsend">Ask</button>
+    <input id="jq" data-tp="jph" placeholder="Ask, or tap the mic…">
+    <button id="jsend" data-t="askbtn">Ask</button>
   </div>
 </section>
 
 <script src="/vendor/three.min.js"></script>
 <script src="/vendor/OrbitControls.js"></script>
+<script src="/i18n.js"></script>
 <script>
 (async () => {
   const cfg = await (await fetch('/config.json')).json()
@@ -353,8 +361,8 @@
     const lh=arr=>arr.length?arr.map(m=>`<div class="lnk" data-id="${encodeURIComponent(m.id)}"><span class="a">→</span>${m.title}</div>`).join(''):'<div class="hint">none</div>'
     let body=''
     try{const r=await(await fetch('/note?id='+encodeURIComponent(n.id))).json();const clean=(r.text||'').replace(/^---[\s\S]*?---\n/,'').trim().slice(0,1400);body+=`<pre>${clean.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</pre>`}catch(e){}
-    body+=`<div class="lbl">Links out (${out.length})</div>${lh(out)}`
-    body+=`<div class="lbl">Backlinks (${back.length})</div>${lh(back)}`
+    body+=`<div class="lbl">${window.SYN_T('linksout')} (${out.length})</div>${lh(out)}`
+    body+=`<div class="lbl">${window.SYN_T('backlinks')} (${back.length})</div>${lh(back)}`
     document.querySelector('#pBody').innerHTML=body
     document.querySelector('#panel').classList.add('open')
     document.querySelectorAll('#pBody .lnk').forEach(el=>el.onclick=()=>{const m=nodeById.get(decodeURIComponent(el.dataset.id));if(m)openNode3d(m)})
@@ -554,7 +562,7 @@
     log.insertAdjacentHTML('beforeend',`<div class="msg u"></div>`);log.lastChild.textContent=q
     log.insertAdjacentHTML('beforeend',`<div class="msg a">…</div>`);const el=log.lastChild;log.scrollTop=log.scrollHeight
     try{
-      const r=await(await fetch('/api/ask',{method:'POST',body:JSON.stringify({q})})).json()
+      const r=await(await fetch('/api/ask',{method:'POST',body:JSON.stringify({q,lang:window.SYN_LANG()})})).json()
       el.innerHTML=(r.answer||'').replace(/[<>]/g,c=>({'<':'&lt;','>':'&gt;'}[c])).replace(/\n/g,'<br>')
       if(r.sources&&r.sources.length){const s=document.createElement('div');s.className='src';r.sources.forEach(so=>{const b=document.createElement('span');b.textContent=so.title;b.onclick=()=>focus3d([so.id]);s.appendChild(b)});el.appendChild(s)}
       if(r.learned){const bb=document.createElement('div');bb.className='learned';bb.textContent='🧠 Remembered: '+r.learned;el.appendChild(bb)}
@@ -713,7 +721,7 @@
 
   // ---- Call JARVIS (live voice conversation)
   let callActive=false,callRec=null,callBusy=false
-  function setCallState(s,label){const c=document.querySelector('#call');c.classList.remove('listening','thinking','speaking');c.classList.add(s);document.querySelector('#cstate').textContent=label||s}
+  function setCallState(s,label){const c=document.querySelector('#call');c.classList.remove('listening','thinking','speaking');c.classList.add(s);const K={listening:'st_listen',thinking:'st_think',speaking:'st_speak'};document.querySelector('#cstate').textContent=K[s]?window.SYN_T(K[s]):(label||s)}
   let rtpc=null,rtStream=null
   function callStart(){if(cfg.realtime)return realtimeCall();if(!SR){alert('Live call needs a browser with speech recognition (Chrome).');return}callActive=true;document.querySelector('#call').classList.add('open');document.querySelector('#ccap').textContent='';setCallState('speaking','Speaking');speak('JARVIS online. How can I help?');startMeter()}
   function callEnd(){callActive=false;try{callRec&&callRec.stop()}catch(e){}try{speechSynthesis.cancel()}catch(e){}stopMeter();realtimeEnd();document.querySelector('#call').classList.remove('open')}
@@ -775,6 +783,9 @@
   document.querySelector('#welcome').addEventListener('click',e=>{if(e.target.id==='welcome')document.querySelector('#welcome').classList.remove('open')})
   {let seen=false;try{seen=!!localStorage.getItem('synapse_seen')}catch(e){}if(!seen)setTimeout(showWelcome,1700)}
   COMMANDS.push({t:'What is SYNAPSE? (help)',k:'help',run:showWelcome})
+  document.querySelectorAll('.langopt').forEach(o=>o.onclick=()=>window.SYN_setLang(o.dataset.lang))
+  {const cr=document.querySelector('#credit');if(cr)cr.href=window.SYN_LINKEDIN}
+  window.SYN_applyLang()
   document.querySelector('#wtour').onclick=()=>{document.querySelector('#welcome').classList.remove('open');try{localStorage.setItem('synapse_seen','1')}catch(e){}runTour3d()}
   document.querySelector('#stats').addEventListener('click',e=>{if(e.target.id==='stats'||e.target.id==='statsClose')document.querySelector('#stats').classList.remove('open')})
   addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();document.querySelector('#palette').classList.contains('open')?closePalette():openPalette()}})
