@@ -19,7 +19,7 @@ jobs:
             artifact: SYNAPSE-windows
           - os: macos-latest
             artifact: SYNAPSE-mac
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             artifact: SYNAPSE-linux
     runs-on: ${{ matrix.os }}
     steps:
