@@ -326,7 +326,7 @@ def command_intent(q, cfg, graph, vault):
         return ack(head, head, {"type": "tasks", "items": items})
     return None
 
-def jarvis_answer(graph, vault, question, cfg, model="", lang=""):
+def jarvis_answer(graph, vault, question, cfg, model="", lang="", key_override=""):
     q = (question or "").strip()
     ql = q.lower()
     memory = read_memory(vault)
@@ -353,11 +353,11 @@ def jarvis_answer(graph, vault, question, cfg, model="", lang=""):
         ctx = "\n".join(f"- {r['title']} ({r['url']})" for r in results) or "No results."
         ans = llm(cfg, model, [
             {"role": "system", "content": system_prompt(cfg, memory, lang) + " You just searched the live web. Summarise the answer in 2 or 3 sentences."},
-            {"role": "user", "content": f"Web results for '{q}':\n{ctx}\n\nAnswer the user's request."}]) or "I could not reach the model."
+            {"role": "user", "content": f"Web results for '{q}':\n{ctx}\n\nAnswer the user's request."}], key_override) or "I could not reach the model."
         return {"answer": ans, "spoken": ans, "sources": [], "focus": [], "card": {"kind": "web", "title": "What I found", "items": results}}
     # default: RAG over notes
     hits = retrieve(graph, vault, q)
-    key = cfg.get("ai_key") or cfg.get("openrouter_key") or env_key()
+    key = key_override or cfg.get("ai_key") or cfg.get("openrouter_key") or env_key()
     if not key:
         if hits:
             top = hits[0]
@@ -377,7 +377,7 @@ def jarvis_answer(graph, vault, question, cfg, model="", lang=""):
              "Otherwise do not add that line.")
     ans = llm(cfg, model, [
         {"role": "system", "content": system_prompt(cfg, memory, lang) + " Cite the note titles you used." + learn},
-        {"role": "user", "content": f"Notes:\n{context}\n\nQuestion: {q}"}]) or "I could not reach the model."
+        {"role": "user", "content": f"Notes:\n{context}\n\nQuestion: {q}"}], key_override) or "I could not reach the model."
     learned = None
     mm = re.search(r"(?mi)^MEMORY:\s*(.+?)\s*$", ans)
     if mm:
@@ -702,6 +702,7 @@ class State:
     vault = "."
     vaults = ["."]
     vidx = 0
+    licensed = False
 
 def make_handler():
     class H(http.server.SimpleHTTPRequestHandler):
@@ -717,8 +718,10 @@ def make_handler():
             path = self.path.split("?")[0]
             if path in ("/", "/index.html"): return self._file("index.html")
             if path in ("/3d.html", "/brain3d.html"): return self._file("brain3d.html")
-            if path == "/graph.json":
-                return self._send(200, json.dumps(State.graph))
+            if path in ("/nexus", "/nexus.html"): return self._file("nexus.html")
+            if path in ("/synapse.py", "/dist/synapse.py"):   # served so installed copies can self-update the core
+                try: return self._send(200, open(os.path.abspath(__file__), "r", encoding="utf-8").read(), "text/plain")
+                except Exception: return self._send(404, b"missing")
             if path == "/config.json":
                 safe = {k: State.config.get(k) for k in ("name", "accent", "accent2", "logo", "persona", "humor", "voice")}
                 safe["jarvis"] = bool(State.config.get("ai_key") or State.config.get("openrouter_key") or env_key())
@@ -727,7 +730,14 @@ def make_handler():
                 safe["allow_os"] = bool(State.config.get("allow_os"))
                 safe["hue"] = bool(State.config.get("hue_bridge") and State.config.get("hue_user"))
                 safe["demo"] = bool(State.config.get("demo"))
+                safe["licensed"] = bool(State.licensed)
+                safe["version"] = VERSION
                 return self._send(200, json.dumps(safe))
+            # license gate: brain data + API stay locked until activated (public demo is exempt)
+            if (path.startswith("/api/") or path == "/graph.json") and not State.config.get("demo") and not State.licensed:
+                return self._send(403, json.dumps({"error": "license required", "licensed": False}))
+            if path == "/graph.json":
+                return self._send(200, json.dumps(State.graph))
             if path == "/rescan":
                 State.graph = scan(State.vault)
                 return self._send(200, json.dumps({"ok": True, "count": State.graph["meta"]["count"]}))
@@ -769,8 +779,19 @@ def make_handler():
                 data = json.loads(self.rfile.read(ln) or b"{}")
             except Exception:
                 data = {}
+            if path == "/api/activate":
+                k = (data.get("key", "") or "").upper().strip()
+                if valid_license(k):
+                    save_license(k); State.licensed = True
+                    return self._send(200, json.dumps({"ok": True, "licensed": True}))
+                return self._send(200, json.dumps({"ok": False, "licensed": State.licensed}))
+            # license is required to use the software outside the public demo
+            if not State.config.get("demo") and not State.licensed:
+                return self._send(403, json.dumps({"error": "license required", "licensed": False}))
+            if path == "/api/update":
+                return self._send(200, json.dumps(apply_update()))
             if path == "/api/ask":
-                out = jarvis_answer(State.graph, State.vault, data.get("q", ""), State.config, data.get("model", ""), data.get("lang", ""))
+                out = jarvis_answer(State.graph, State.vault, data.get("q", ""), State.config, data.get("model", ""), data.get("lang", ""), data.get("key", ""))
                 return self._send(200, json.dumps(out))
             if path == "/api/switch":
                 idx = int(data.get("idx", 0))
@@ -827,6 +848,89 @@ def gen_key():
     s = sum((AL.index(c) + 1) * (i + 2) for i, c in enumerate(p))
     return "LAMARCA-" + p + AL[s % len(AL)]
 
+# ---- license (required to launch outside --demo) ----
+VERSION = "1.2.0"
+LICENSE_PATH = os.path.join(os.path.expanduser("~"), ".synapse_license")
+UPDATE_BASE = "https://synapse.jonathanlamarca.fr"
+
+def valid_license(k):
+    AL = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    k = (k or "").upper().strip()
+    m = re.match(r"^LAMARCA-([A-Z0-9]{5})([A-Z0-9])$", k)
+    if not m:
+        return False
+    p, c = m.group(1), m.group(2)
+    if any(ch not in AL for ch in p):
+        return False
+    s = sum((AL.index(ch) + 1) * (i + 2) for i, ch in enumerate(p))
+    return AL[s % len(AL)] == c
+
+def load_license():
+    try:
+        k = open(LICENSE_PATH, "r", encoding="utf-8").read().strip()
+        return k if valid_license(k) else None
+    except Exception:
+        return None
+
+def save_license(k):
+    try:
+        with open(LICENSE_PATH, "w", encoding="utf-8") as f:
+            f.write((k or "").strip())
+        return True
+    except Exception:
+        return False
+
+# ---- remote update (pull latest UI + core from the live server) ----
+def _semver(v):
+    try:
+        return tuple(int(x) for x in str(v).split("."))
+    except Exception:
+        return (0,)
+
+UA = "Mozilla/5.0 (SYNAPSE-Updater/" + VERSION + ")"
+def _get(url, timeout=8):
+    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    return urllib.request.urlopen(req, timeout=timeout).read()
+
+def remote_manifest():
+    try:
+        return json.loads(_get(UPDATE_BASE + "/version.json"))
+    except Exception:
+        return None
+
+def update_available():
+    man = remote_manifest()
+    if not man:
+        return None
+    if _semver(man.get("version", "0")) > _semver(VERSION):
+        return man.get("version")
+    return None
+
+def apply_update():
+    man = remote_manifest()
+    if not man:
+        return {"ok": False, "error": "cannot reach update server"}
+    base = man.get("base", UPDATE_BASE).rstrip("/")
+    updated, restart = [], False
+    for rel in man.get("files", []):
+        rel = rel.lstrip("/")
+        try:
+            data = _get(base + "/" + rel, timeout=25)
+            if rel.endswith(".py"):
+                dest = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.basename(rel))
+                restart = True
+            else:
+                dest = os.path.join(WEB, rel)
+            d = os.path.dirname(dest)
+            if d and not os.path.isdir(d):
+                os.makedirs(d, exist_ok=True)
+            with open(dest, "wb") as f:
+                f.write(data)
+            updated.append(rel)
+        except Exception:
+            pass
+    return {"ok": True, "from": VERSION, "to": man.get("version"), "updated": updated, "restart": restart}
+
 def main():
     import urllib.parse
     args = sys.argv[1:]
@@ -836,6 +940,14 @@ def main():
             if a.isdigit(): n = min(200, int(a))
         for _ in range(n):
             print(gen_key())
+        return
+    if "--activate" in args:
+        idx = args.index("--activate")
+        key = args[idx + 1] if idx + 1 < len(args) else ""
+        if valid_license(key):
+            save_license(key); print("  Activated. License saved to", LICENSE_PATH)
+        else:
+            print("  Invalid license key. DM Jonathan on Skool for a valid one.")
         return
     vaults = []
     port = 4711
@@ -860,12 +972,25 @@ def main():
     if demo_mode:
         State.config["demo"] = True
         State.config["allow_os"] = False  # never let a public demo touch the host
-        State.config["ai_key"] = ""; State.config["openrouter_key"] = ""
-        os.environ["SYNAPSE_DEMO"] = "1"   # env_key() returns None -> extractive JARVIS only
+        os.environ["SYNAPSE_DEMO"] = "1"   # public demo must NOT spend Jonathan's paid key
+        # License gate stays lifted, OS control stays off. env_key() returns None so no paid key is ever
+        # lent to anonymous visitors; the AI answers extractively from the demo vault. Visitors who want
+        # full GPT answers download SYNAPSE and add their own key (same key they'd use anywhere).
+    State.licensed = bool(load_license())
     State.graph = scan(vault)
-    print(f"  SYNAPSE  ·  {State.config.get('name')}")
+    print(f"  SYNAPSE  ·  {State.config.get('name')}  v{VERSION}")
     print(f"  vault    : {os.path.abspath(vault)}")
     print(f"  notes    : {State.graph['meta']['count']}   links: {State.graph['meta']['edges']}")
+    if demo_mode:
+        print("  license  : public demo (gate lifted)")
+    elif State.licensed:
+        print("  license  : activated")
+    else:
+        print("  license  : NOT activated — the app is locked. Activate with a key from Jonathan (Skool),")
+        print("             either in the browser gate or:  python3 synapse.py --activate LAMARCA-XXXXXX")
+    upd = update_available()
+    if upd:
+        print(f"  update   : v{upd} available — POST /api/update or use the in-app Update button")
     Handler = make_handler()
     socketserver.ThreadingTCPServer.allow_reuse_address = True
     # auto-pick a free port

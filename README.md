@@ -44,6 +44,21 @@ Every note is a node. Every `[[link]]` is a synapse. No database, no build step,
 **Call JARVIS. A live voice conversation with your own notes.**
 ![Call JARVIS](docs/call.png)
 
+## LAMARCA OS, step inside your brain
+
+SYNAPSE has a second face: a full screen spatial interface you drive with your voice and your hands. Open it from the rail, one tap to switch back to the brain.
+
+<p align="center">
+  <img src="docs/lamarca-os.gif" width="760" alt="LAMARCA OS spatial interface">
+</p>
+
+- A floating carousel of living HUD panels, each in its own color: **Weather** and **News** pull real data with no key, **AI** reads your actual brain (notes, links, top hubs you can jump to), the rest show live telemetry.
+- **Talk to it.** Ask anything in the bar or with your voice and it answers out loud, from your own notes.
+- **Control it with your hands.** Turn on the camera and a blue mesh tracks your hand: open palm to orbit, pinch to open a panel, two hands to zoom, fist to release. Works on phone and desktop.
+- The same hand control also drives the 3D brain: open palm to orbit the galaxy, pinch to open the node under your finger.
+
+Try it in the [live demo](https://synapse.jonathanlamarca.fr/nexus.html), no install.
+
 ## Quick start
 
 You need Python 3. That is the only requirement.
@@ -143,7 +158,17 @@ Or push the repo and let GitHub Actions build Windows, macOS and Linux for you. 
 
 ## Privacy
 
-SYNAPSE reads your files, builds the graph in memory and serves it to your own browser on localhost. There is no telemetry and no account. When you add an AI key, only the notes relevant to your question are sent to that provider, and only when you ask.
+SYNAPSE reads your files, builds the graph in memory and serves it to your own browser on localhost. There is no telemetry and no account. When you add an AI key, only the notes relevant to your question are sent to that provider, and only when you ask. Your key lives in your browser and is sent with a request only when you ask, never written to the server.
+
+## Activation and updates
+
+The community build asks for a license key on first launch. Get one by DMing Jonathan on [Skool](https://www.skool.com/house-of-lamarca-), then activate in the browser gate or from the terminal:
+
+```
+python3 synapse.py --activate LAMARCA-XXXXXX
+```
+
+Until it is activated the app stays locked. Updates are pulled from the live server when a newer version is published: hit **Update** in the app, or `POST /api/update`. The public demo needs no key.
 
 ## License
 

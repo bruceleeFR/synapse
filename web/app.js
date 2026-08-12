@@ -474,17 +474,23 @@
   // ---- jarvis + voice
   $('#jbtn').onclick = () => $('#jarvis').classList.toggle('open')
   let speaking = false, voicePref = null
+  const VLANG = { en: 'en-GB', fr: 'fr-FR', ru: 'ru-RU', zh: 'zh-CN' }
+  function curLang() { try { return (window.SYN_LANG && window.SYN_LANG()) || 'en' } catch (e) { return 'en' } }
+  function langTag() { return VLANG[curLang()] || 'en-GB' }
   function pickVoice() {
-    const vs = speechSynthesis.getVoices()
-    if (voicePref) { const v = vs.find(v => v.name.toLowerCase().includes(voicePref.toLowerCase())); if (v) return v }
-    return vs.find(v => /en-GB/i.test(v.lang) && /(daniel|george|arthur|male|oliver)/i.test(v.name)) || vs.find(v => /en-GB/i.test(v.lang)) || vs.find(v => /en[-_]/i.test(v.lang)) || vs[0]
+    const vs = speechSynthesis.getVoices(); const tag = langTag().toLowerCase(); const two = tag.slice(0, 2)
+    if (voicePref && curLang() === 'en') { const v = vs.find(v => v.name.toLowerCase().includes(voicePref.toLowerCase())); if (v) return v }
+    return vs.find(v => v.lang && v.lang.replace('_', '-').toLowerCase() === tag)
+      || vs.find(v => v.lang && v.lang.replace('_', '-').toLowerCase().startsWith(two))
+      || (curLang() === 'en' ? (vs.find(v => /en-GB/i.test(v.lang) && /(daniel|george|arthur|male|oliver)/i.test(v.name)) || vs.find(v => /en[-_]/i.test(v.lang))) : null)
+      || vs[0]
   }
   try { speechSynthesis.onvoiceschanged = pickVoice } catch (e) { }
   function speak(text) {
     try {
       speechSynthesis.cancel()
       const u = new SpeechSynthesisUtterance(String(text).replace(/[#*`>_]/g, '').replace(/\$(\d+)\/mo/g, '$1 dollars a month').slice(0, 700))
-      const v = pickVoice(); if (v) u.voice = v; u.rate = 1.02
+      const v = pickVoice(); if (v) u.voice = v; u.lang = langTag(); u.rate = 1.02
       u.onstart = () => { speaking = true; if (callActive) setCallState('speaking', 'Speaking'); if (cfg.hue) fetch('/api/hue').catch(() => {}) }
       u.onend = () => { speaking = false; if (callActive) callListen() }
       speechSynthesis.speak(u)
@@ -492,7 +498,7 @@
   }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition
   let rec = null, hands = false
-  function mkRec(cont) { const r = new SR(); r.lang = 'en-US'; r.interimResults = false; r.continuous = cont; return r }
+  function mkRec(cont) { const r = new SR(); r.lang = langTag(); r.interimResults = false; r.continuous = cont; return r }
   // strict mode: only act when the assistant's name is spoken
   function nameHit(t) { const s = (t || '').toLowerCase(); const nm = (cfg.name || '').toLowerCase(); return s.includes('jarvis') || s.includes('synapse') || (nm.length > 2 && s.includes(nm)) }
   function strictOK(t) { return !cfg.strict || nameHit(t) }
@@ -523,7 +529,7 @@
     return new Promise(res => {
       try {
         speechSynthesis.cancel()
-        const u = new SpeechSynthesisUtterance(String(text).replace(/[#*`>_]/g, '')); const v = pickVoice(); if (v) u.voice = v; u.rate = 1.02
+        const u = new SpeechSynthesisUtterance(String(text).replace(/[#*`>_]/g, '')); const v = pickVoice(); if (v) u.voice = v; u.lang = langTag(); u.rate = 1.02
         let done = false; const fin = () => { if (!done) { done = true; res() } }
         u.onend = fin; u.onerror = fin; speaking = true; speechSynthesis.speak(u)
         setTimeout(fin, Math.min(9000, 1400 + text.length * 55))
@@ -634,7 +640,7 @@
     log.insertAdjacentHTML('beforeend', `<div class="msg u"></div>`); log.lastChild.textContent = q
     log.insertAdjacentHTML('beforeend', `<div class="msg a">…</div>`); const el = log.lastChild; log.scrollTop = log.scrollHeight
     try {
-      const r = await (await fetch('/api/ask', { method: 'POST', body: JSON.stringify({ q, lang: window.SYN_LANG() }) })).json()
+      const r = await (await fetch('/api/ask', { method: 'POST', body: JSON.stringify({ q, lang: window.SYN_LANG(), key: (localStorage.getItem('synapse_userkey') || '').trim() }) })).json()
       el.innerHTML = (r.answer || '').replace(/[<>]/g, c => ({ '<': '&lt;', '>': '&gt;' }[c])).replace(/\n/g, '<br>')
       if (r.sources && r.sources.length) {
         const s = document.createElement('div'); s.className = 'src'
@@ -717,14 +723,17 @@
   $('#setHumor').addEventListener('input', e => $('#humVal').textContent = e.target.value)
   $('#setSave').onclick = async () => {
     const body = { persona: $('#setPersona').value, humor: +$('#setHumor').value, model: $('#setModel').value }
-    if ($('#setKey').value.trim()) body.ai_key = $('#setKey').value.trim()
+    const _uk = $('#setKey').value.trim()
+    // key lives in this browser and is sent per request; on the shared demo it is never written to the server config
+    if (_uk) { try { localStorage.setItem('synapse_userkey', _uk) } catch (e) {} if (!cfg.demo) body.ai_key = _uk }
     if ($('#setOR').value.trim()) body.openrouter_key = $('#setOR').value.trim()
     cfg.persona = body.persona; cfg.humor = body.humor; cfg.model = body.model
     const r = await (await fetch('/api/set', { method: 'POST', body: JSON.stringify(body) })).json()
-    cfg.jarvis = r.jarvis; updateConn(r.jarvis); refreshNudge(); $('#setKey').value = ''; $('#setOR').value = ''
+    const _hasLocal = !!(localStorage.getItem('synapse_userkey') || '').trim()
+    cfg.jarvis = r.jarvis || _hasLocal; updateConn(cfg.jarvis); refreshNudge(); $('#setKey').value = ''; $('#setOR').value = ''
     setpop.classList.remove('open')
     const log = $('#jlog'); const hint = log.querySelector('.hint'); if (hint) hint.remove()
-    log.insertAdjacentHTML('beforeend', `<div class="msg a"><b>JARVIS</b><br>${r.jarvis ? 'Connected and recalibrated. I am fully online.' : 'Settings saved. Add a key to bring me fully online.'}</div>`); log.scrollTop = log.scrollHeight
+    log.insertAdjacentHTML('beforeend', `<div class="msg a"><b>JARVIS</b><br>${cfg.jarvis ? 'Connected and recalibrated. I am fully online.' : 'Settings saved. Add a key to bring me fully online.'}</div>`); log.scrollTop = log.scrollHeight
   }
 
   // ---- Call JARVIS (live voice conversation)

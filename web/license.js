@@ -19,8 +19,14 @@
     if (cr && window.SYN_LINKEDIN) cr.href = window.SYN_LINKEDIN
     function go() {
       const k = (inp.value || '').toUpperCase().trim()
-      if (window.SYN_validateKey(k)) { try { localStorage.setItem('synapse_license', k) } catch (e) { } el.classList.remove('open') }
-      else { msg.textContent = window.SYN_T ? window.SYN_T('lic_invalid') : 'Invalid key.' }
+      if (!window.SYN_validateKey(k)) { msg.textContent = window.SYN_T ? window.SYN_T('lic_invalid') : 'Invalid key.'; return }
+      // unlock the server too (the app is locked until a valid key is registered)
+      fetch('/api/activate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: k }) })
+        .then(r => r.json()).then(d => {
+          if (d && (d.licensed || d.ok)) { try { localStorage.setItem('synapse_license', k) } catch (e) { } el.classList.remove('open') }
+          else { msg.textContent = window.SYN_T ? window.SYN_T('lic_invalid') : 'Invalid key.' }
+        })
+        .catch(() => { try { localStorage.setItem('synapse_license', k) } catch (e) { } el.classList.remove('open') })
     }
     btn.onclick = go
     inp.onkeydown = e => { if (e.key === 'Enter') go() }
@@ -28,10 +34,15 @@
   }
   function boot() {
     if (window.SYN_applyLang) window.SYN_applyLang()
-    if (activated()) return
+    if (activated()) {
+      // sync the server lock on a fresh install or a new browser that already holds a key
+      const k = localStorage.getItem('synapse_license')
+      fetch('/api/activate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: k }) }).catch(() => { })
+      return
+    }
     showGate()
-    // Public demo instances lift the gate so visitors can explore the live product.
-    fetch('/config.json').then(r => r.json()).then(c => { if (c.demo) { const el = document.getElementById('license'); if (el) el.classList.remove('open') } }).catch(() => { })
+    // Public demo instances (and an already-licensed server) lift the gate.
+    fetch('/config.json').then(r => r.json()).then(c => { if (c.demo || c.licensed) { const el = document.getElementById('license'); if (el) el.classList.remove('open') } }).catch(() => { })
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot()
 })()

@@ -35,7 +35,21 @@
     background:linear-gradient(180deg,var(--glass2),rgba(6,9,18,.96));border-right:1px solid var(--line);
     backdrop-filter:blur(14px);display:flex;flex-direction:column;padding:14px 0 12px;
     transition:width .22s cubic-bezier(.2,.8,.2,1)}
-  .rail:hover{width:218px;box-shadow:24px 0 60px rgba(0,0,0,.45)}
+  .rail:hover,.rail.open{width:218px;box-shadow:24px 0 60px rgba(0,0,0,.45)}
+  .rail .brand{cursor:pointer}
+  .rail .brand .chev{margin-left:auto;margin-right:16px;color:#5b7099;font-size:15px;font-weight:700;transition:transform .25s;flex:0 0 auto}
+  .rail.open .brand .chev{transform:rotate(180deg)}
+  .rail.open .ri span,.rail.open .lab,.rail.open .brand b{display:revert!important;visibility:visible!important}
+  .rail.open .ri{gap:14px!important;padding:0 13px!important;justify-content:flex-start!important}
+  .railtog{position:fixed;z-index:12;top:13px;left:11px;width:44px;height:44px;border-radius:11px;border:1px solid var(--line);background:rgba(9,14,26,.74);backdrop-filter:blur(10px);color:var(--ink);display:none;align-items:center;justify-content:center;cursor:pointer}
+  .railtog svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2}
+  @media (hover:none){
+    .rail:hover{width:66px;box-shadow:none}
+    .rail:not(.open) .ri{justify-content:center;gap:0;padding:0 15px}
+    .rail:not(.open) .ri span{display:none}
+    .rail:not(.open) .lab,.rail:not(.open) .brand b,.rail:not(.open) .brand .chev{visibility:hidden}
+    .rail.open{box-shadow:24px 0 60px rgba(0,0,0,.5)}
+  }
   .rail .brand{display:flex;align-items:center;gap:12px;padding:6px 0 6px 19px;margin-bottom:10px;white-space:nowrap}
   .rail .brand .mk{width:26px;height:26px;flex:0 0 26px;border-radius:8px;position:relative;
     background:conic-gradient(from 0deg,var(--a),var(--a2),var(--a));box-shadow:0 0 18px rgba(91,139,255,.6)}
@@ -348,12 +362,14 @@
 
 <div class="br tl"></div><div class="br tr"></div><div class="br bl"></div><div class="br brr"></div>
 
+<button class="railtog" id="railtog" aria-label="menu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 <nav class="rail" id="rail">
-  <div class="brand"><span class="mk"></span><b id="brandName">SYNAPSE</b></div>
+  <div class="brand" id="railbrand"><span class="mk"></span><b id="brandName">SYNAPSE</b><span class="chev">‹</span></div>
   <div class="lab" data-t="view">View</div>
   <div class="grp">
     <button class="ri on" id="nav2d"><svg viewBox="0 0 24 24"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="15" r="3"/><path d="M10.5 10.5 13.5 13.5"/></svg><span data-t="g2d">2D graph</span></button>
     <a class="ri" id="nav3d" href="/3d.html"><svg viewBox="0 0 24 24"><path d="M12 3 20 7.5V16.5L12 21 4 16.5V7.5Z"/><path d="M12 3v18M4 7.5l8 4.5 8-4.5"/></svg><span data-t="g3d">3D brain</span></a>
+    <a class="ri" id="navnexus" href="/nexus.html"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg><span>LAMARCA OS</span></a>
   </div>
   <div class="lab" data-t="intel">Intelligence</div>
   <div class="grp">
@@ -511,6 +527,19 @@
   <div class="bl" id="bootLine"></div>
 </div>
 
-<script src="/i18n.js?v=2"></script>
-<script src="/license.js?v=2"></script>
-<script src="/app.js?v=2"></script>
+<script src="/i18n.js?v=1786541890"></script>
+<script src="/license.js?v=1786566479"></script>
+<script src="/app.js?v=1786565387"></script>
+<script>
+/* sidebar toggle — tap to open on touch/tablet where hover does not exist */
+(function(){
+  const rail=document.getElementById('rail'), tog=document.getElementById('railtog'), brand=document.getElementById('railbrand')
+  function toggle(e){ if(e){e.preventDefault();e.stopPropagation()} rail.classList.toggle('open') }
+  if(tog) tog.addEventListener('click',toggle)
+  if(brand) brand.addEventListener('click',toggle)
+  // tapping a nav item closes the pinned rail
+  rail.querySelectorAll('.ri').forEach(b=>b.addEventListener('click',()=>{ setTimeout(()=>rail.classList.remove('open'),120) }))
+  // tap outside closes it
+  document.addEventListener('click',e=>{ if(rail.classList.contains('open') && !rail.contains(e.target) && e.target!==tog && !tog.contains(e.target)) rail.classList.remove('open') })
+})();
+</script>
