@@ -1,0 +1,42 @@
+<meta charset="utf-8">
+<style>
+  *{margin:0;box-sizing:border-box}
+  html,body{width:1460px;height:752px;overflow:hidden;background:#05070f;font-family:'DejaVu Sans',system-ui,sans-serif}
+  .stage{position:relative;width:1460px;height:752px;
+    background:
+      radial-gradient(1000px 760px at 74% 34%,rgba(255,140,40,.30),transparent 60%),
+      radial-gradient(760px 620px at 20% 82%,rgba(255,90,20,.20),transparent 55%),
+      #0a0603;overflow:hidden}
+  #n{position:absolute;inset:0}
+  .lab{position:absolute;top:54px;left:70px;font-size:20px;letter-spacing:.42em;color:#d9994f;font-weight:700}
+  .txt{position:absolute;left:70px;top:196px}
+  .txt h1{font-size:126px;line-height:.92;font-weight:900;letter-spacing:-.02em;
+    background:linear-gradient(108deg,#ffd28a,#ffb454 45%,#ff7a1a);-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 46px rgba(255,140,40,.55))}
+  .txt p{margin-top:28px;font-size:32px;letter-spacing:.14em;color:#ffe9cf;font-weight:700}
+  .txt .sub{margin-top:12px;font-size:21px;color:#c69a72;letter-spacing:.02em;font-weight:600;max-width:660px}
+  .mk{position:absolute;bottom:52px;left:70px;display:flex;align-items:center;gap:14px}
+  .mk .b{width:30px;height:30px;border-radius:9px;background:conic-gradient(from 0deg,#ffb454,#ff7a1a,#ffb454);box-shadow:0 0 20px rgba(255,140,40,.6);position:relative}
+  .mk .b::after{content:"";position:absolute;inset:6px;border-radius:5px;background:#0a0603}
+  .mk span{font-size:19px;letter-spacing:.3em;color:#e0b487;font-weight:800}
+  .fr{position:absolute;inset:26px;border:1px solid rgba(255,140,40,.22);border-radius:20px;pointer-events:none}
+</style>
+<div class="stage">
+  <canvas id="n" width="1460" height="752"></canvas>
+  <div class="fr"></div>
+  <div class="lab">HOUSE OF LAMARCA &nbsp;·&nbsp; 06 &nbsp;·&nbsp; JARVIS</div>
+  <div class="txt">
+    <h1>BUILD YOUR<br>JARVIS</h1>
+    <p>YOUR NOTES, ALIVE.</p>
+    <div class="sub">Turn a folder of notes into a living 2D and 3D brain with a JARVIS that answers from your own words.</div>
+  </div>
+  <div class="mk"><span class="b"></span><span>SECOND BRAIN</span></div>
+</div>
+<script>
+  const x=document.getElementById('n').getContext('2d'),W=1460,H=752
+  const COL=['#ffb454','#ff7a1a','#ffd28a','#ff9d3c']
+  const N=[]; for(let i=0;i<30;i++)N.push({x:640+Math.random()*760,y:60+Math.random()*640,r:2+Math.random()*4,c:COL[i%COL.length]})
+  const L=[]; for(let i=0;i<N.length;i++){for(let j=i+1;j<N.length;j++){if(Math.hypot(N[i].x-N[j].x,N[i].y-N[j].y)<180&&Math.random()<.5)L.push([N[i],N[j]])}}
+  for(const l of L){x.strokeStyle='rgba(120,150,220,.16)';x.lineWidth=1.2;x.beginPath();x.moveTo(l[0].x,l[0].y);x.lineTo(l[1].x,l[1].y);x.stroke()}
+  for(const p of N){const g=x.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*7);g.addColorStop(0,p.c+'dd');g.addColorStop(1,p.c+'00');x.fillStyle=g;x.beginPath();x.arc(p.x,p.y,p.r*7,0,7);x.fill();x.fillStyle=p.c;x.beginPath();x.arc(p.x,p.y,p.r,0,7);x.fill()}
+</script>

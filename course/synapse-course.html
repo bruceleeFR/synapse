@@ -1,0 +1,170 @@
+<title>SYNAPSE Course · House of Lamarca</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root{
+    --bg:#05070f; --bg2:#0a0f1e; --panel:rgba(14,21,38,.72); --line:#1a2842;
+    --ink:#e6edfb; --dim:#8496b8; --faint:#5a6b8c;
+    --a:#5b8bff; --a2:#8f6bff; --ok:#38d996; --warn:#ffb454;
+  }
+  *{margin:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:
+      radial-gradient(1200px 800px at 70% -10%,rgba(60,90,180,.18),transparent 60%),
+      radial-gradient(900px 700px at 10% 20%,rgba(143,107,255,.12),transparent 55%),
+      var(--bg);
+    color:var(--ink);font-family:'DejaVu Sans','Inter',system-ui,sans-serif;line-height:1.55;
+    overflow-x:hidden}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 22px}
+  a{color:inherit}
+  /* hero */
+  .hero{position:relative;min-height:78vh;display:flex;flex-direction:column;justify-content:center;padding:70px 0 50px}
+  #neural{position:absolute;inset:0;width:100%;height:100%;z-index:0;opacity:.85}
+  .hero .in{position:relative;z-index:1;max-width:760px}
+  .eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);
+    border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(8px);padding:7px 14px;border-radius:30px;margin-bottom:26px}
+  .eyebrow .dot{width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 35% 35%,var(--a),var(--a2));box-shadow:0 0 12px var(--a)}
+  h1{font-size:clamp(40px,7vw,76px);line-height:1.02;letter-spacing:-.02em;font-weight:800;text-wrap:balance}
+  h1 .g{background:linear-gradient(110deg,var(--a),var(--a2) 60%,#c78bff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{font-size:clamp(17px,2.4vw,21px);color:var(--dim);margin:22px 0 34px;max-width:620px}
+  .cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .btn{display:inline-flex;align-items:center;gap:9px;padding:14px 22px;border-radius:13px;font-weight:700;font-size:15px;text-decoration:none;border:1px solid transparent}
+  .btn.p{background:linear-gradient(120deg,var(--a),var(--a2));color:#fff;box-shadow:0 12px 40px rgba(91,139,255,.35)}
+  .btn.p:hover{filter:brightness(1.08)}
+  .btn.s{background:var(--panel);border-color:var(--line);color:var(--ink);backdrop-filter:blur(8px)}
+  .btn.s:hover{border-color:var(--a)}
+  .metar{display:flex;gap:26px;margin-top:34px;flex-wrap:wrap}
+  .metar .m b{font-size:22px;font-variant-numeric:tabular-nums}
+  .metar .m span{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  /* section */
+  section{padding:48px 0;position:relative;z-index:1}
+  .shead{display:flex;align-items:baseline;gap:16px;margin-bottom:8px}
+  .snum{font-size:14px;font-weight:800;letter-spacing:.1em;color:var(--a2);font-variant-numeric:tabular-nums}
+  .shead h2{font-size:clamp(24px,3.6vw,34px);letter-spacing:-.01em;font-weight:800}
+  .ssub{color:var(--dim);margin:0 0 26px 46px;max-width:640px;font-size:15px}
+  @media(max-width:620px){.ssub{margin-left:0}}
+  .lessons{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:720px){.lessons{grid-template-columns:1fr}}
+  .lesson{border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(10px);border-radius:15px;padding:18px 20px;transition:.16s;position:relative;overflow:hidden}
+  .lesson::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(var(--a),var(--a2));opacity:0;transition:.16s}
+  .lesson:hover{border-color:rgba(91,139,255,.5);transform:translateY(-2px)}
+  .lesson:hover::before{opacity:1}
+  .lesson .lid{font-size:12px;font-weight:700;color:var(--a);font-variant-numeric:tabular-nums}
+  .lesson h3{font-size:17px;margin:5px 0 7px;line-height:1.2}
+  .lesson p{font-size:13.5px;color:var(--dim)}
+  .lesson .build{margin-top:11px;font-size:12.5px;color:var(--ok);border-top:1px dashed var(--line);padding-top:9px}
+  .lesson .build b{color:var(--ink);font-weight:700}
+  .divider{height:1px;background:linear-gradient(90deg,transparent,var(--line),transparent);margin:8px 0}
+  /* closing */
+  .close{text-align:center;padding:70px 0 40px}
+  .close h2{font-size:clamp(26px,4vw,40px);font-weight:800;letter-spacing:-.01em}
+  .close p{color:var(--dim);margin:14px auto 26px;max-width:520px}
+  footer{border-top:1px solid var(--line);padding:26px 0 46px;color:var(--faint);font-size:13px;display:flex;gap:20px;flex-wrap:wrap;justify-content:space-between;align-items:center}
+  footer a{color:var(--dim);text-decoration:none}footer a:hover{color:var(--a)}
+  @media(prefers-reduced-motion:reduce){#neural{opacity:.4}}
+</style>
+
+<div class="hero">
+  <canvas id="neural"></canvas>
+  <div class="wrap in">
+    <span class="eyebrow"><span class="dot"></span>House of Lamarca · Course 06</span>
+    <h1>Turn your notes into a <span class="g">living brain</span>.</h1>
+    <p class="lead">SYNAPSE reads a folder of notes and draws the web behind them. A 2D and 3D brain you fly through, with a JARVIS that answers from your own words. This course takes you from install to selling it.</p>
+    <div class="cta">
+      <a class="btn p" href="https://github.com/bruceleeFR/synapse/releases/tag/v1.0.0" target="_blank" rel="noopener">Download the app</a>
+      <a class="btn s" href="https://github.com/bruceleeFR/synapse" target="_blank" rel="noopener">See the code</a>
+    </div>
+    <div class="metar">
+      <div class="m"><b>5</b><span>Modules</span></div>
+      <div class="m"><b>17</b><span>Lessons</span></div>
+      <div class="m"><b>0</b><span>Setup pain</span></div>
+      <div class="m"><b>100%</b><span>Local</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <section id="m1">
+    <div class="shead"><span class="snum">01</span><h2>Start here</h2></div>
+    <p class="ssub">Understand why a graph beats a folder, then install SYNAPSE and point it at your own notes.</p>
+    <div class="lessons">
+      <div class="lesson"><div class="lid">1.1</div><h3>Your notes are dead. Let us fix that.</h3><p>A list hides how ideas connect. Your thinking is a web, not a column. See the shape and the holes in it.</p><div class="build"><b>Build:</b> count the notes you have not opened in a month. That number is the point.</div></div>
+      <div class="lesson"><div class="lid">1.2</div><h3>Install in two minutes</h3><p>No Python, no setup. Grab the file for your OS, double click, and your brain opens in the browser.</p><div class="build"><b>Build:</b> install it and fly through the demo brain.</div></div>
+      <div class="lesson"><div class="lid">1.3</div><h3>Point it at your own notes</h3><p>Any markdown folder works. An Obsidian vault works as is. Wikilinks and folders power the graph.</p><div class="build"><b>Build:</b> load your real notes and find your biggest hub.</div></div>
+    </div>
+  </section>
+
+  <section id="m2">
+    <div class="shead"><span class="snum">02</span><h2>Explore your brain</h2></div>
+    <p class="ssub">Read the 2D graph, fly the 3D galaxy, and learn to navigate your knowledge like a codebase.</p>
+    <div class="lessons">
+      <div class="lesson"><div class="lid">2.1</div><h3>Read the 2D graph</h3><p>Big glowing balls are your hubs. Lines are your ideas connecting. Hover, click, drag, and read.</p></div>
+      <div class="lesson"><div class="lid">2.2</div><h3>Fly the 3D brain</h3><p>The same brain in space, with cinema grade bloom and synapses firing. Themes cluster into clear lobes.</p></div>
+      <div class="lesson"><div class="lid">2.3</div><h3>Search, filter, follow</h3><p>Live search, folder filters, clickable backlinks, and a command palette to jump anywhere with Cmd or Ctrl and K.</p></div>
+    </div>
+  </section>
+
+  <section id="m3">
+    <div class="shead"><span class="snum">03</span><h2>Meet JARVIS</h2></div>
+    <p class="ssub">Add one key and your brain talks back, answering from your notes, by text or live voice.</p>
+    <div class="lessons">
+      <div class="lesson"><div class="lid">3.1</div><h3>Turn JARVIS on</h3><p>Paste a key in Tune JARVIS. It stays in your own folder and never leaves your machine.</p></div>
+      <div class="lesson"><div class="lid">3.2</div><h3>Ask your own brain anything</h3><p>It pulls the right notes, answers from them, flies to the source and lights it up, with citations.</p></div>
+      <div class="lesson"><div class="lid">3.3</div><h3>Call JARVIS, live</h3><p>A full screen call with an orb that reacts to your real voice. Hands free conversation with your notes.</p></div>
+      <div class="lesson"><div class="lid">3.4</div><h3>Brain Gaps</h3><p>It finds the links your notes are missing and, with one tap, writes them in. Your brain tidies itself.</p></div>
+    </div>
+  </section>
+
+  <section id="m4">
+    <div class="shead"><span class="snum">04</span><h2>It adapts to you</h2></div>
+    <p class="ssub">Capture without friction, get a daily focus from your own brain, and watch it grow around how you work.</p>
+    <div class="lessons">
+      <div class="lesson"><div class="lid">4.1</div><h3>Quick Capture</h3><p>Dump a thought by voice or text. JARVIS files it, tags it and links it for you. Zero filing.</p></div>
+      <div class="lesson"><div class="lid">4.2</div><h3>Today's Focus</h3><p>It reads your tasks, recent and cold notes, and hands you a short plan for the day, out loud.</p></div>
+      <div class="lesson"><div class="lid">4.3</div><h3>The tour and the stats</h3><p>A narrated flight through your own brain, plus analytics on growth, busiest areas and top hubs.</p></div>
+      <div class="lesson"><div class="lid">4.4</div><h3>Auto tidy, Rediscover, living nodes</h3><p>Tidy every gap at once, resurface forgotten notes tied to today, and watch used notes glow brighter.</p></div>
+    </div>
+  </section>
+
+  <section id="m5">
+    <div class="shead"><span class="snum">05</span><h2>Make it yours and sell it</h2></div>
+    <p class="ssub">White label SYNAPSE, package it as an offer, and learn the pitch that closes a second brain.</p>
+    <div class="lessons">
+      <div class="lesson"><div class="lid">5.1</div><h3>White label SYNAPSE</h3><p>Three lines in a config file give it your name and colours. To a client it looks like software you built.</p></div>
+      <div class="lesson"><div class="lid">5.2</div><h3>Package it as an offer</h3><p>Done for you, retainer, bundle, or lead magnet. Price the outcome, not the tool.</p></div>
+      <div class="lesson"><div class="lid">5.3</div><h3>The pitch that sells</h3><p>Name the pain, agitate, demo their own notes answering them live, and close. The demo does the selling.</p></div>
+    </div>
+  </section>
+
+  <div class="close">
+    <h2>Your notes are not a graveyard anymore.</h2>
+    <p>They are alive. Install SYNAPSE, make it answer you, make it adapt to you, and turn it into an offer.</p>
+    <a class="btn p" href="https://github.com/bruceleeFR/synapse/releases/tag/v1.0.0" target="_blank" rel="noopener">Get SYNAPSE</a>
+  </div>
+
+  <footer>
+    <span>SYNAPSE · House of Lamarca</span>
+    <span><a href="https://github.com/bruceleeFR/synapse" target="_blank" rel="noopener">GitHub</a> &nbsp; <a href="https://github.com/bruceleeFR/synapse/releases/tag/v1.0.0" target="_blank" rel="noopener">Download</a></span>
+  </footer>
+</div>
+
+<script>
+  const c=document.getElementById('neural'),x=c.getContext('2d');let W,H,DPR=Math.min(2,devicePixelRatio||1)
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches
+  function size(){const r=c.getBoundingClientRect();W=r.width;H=r.height;c.width=W*DPR;c.height=H*DPR;x.setTransform(DPR,0,0,DPR,0,0)}
+  addEventListener('resize',size)
+  const COL=['#5b8bff','#8f6bff','#38d996','#c78bff']
+  let N=[],L=[]
+  function build(){N=[];L=[];const n=Math.max(10,Math.min(20,Math.round(W/70)))
+    for(let i=0;i<n;i++)N.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.18,vy:(Math.random()-.5)*.18,r:2+Math.random()*3,c:COL[i%COL.length]})
+    for(let i=0;i<n;i++){const a=N[i];const b=N[(i+1+((Math.random()*3)|0))%n];L.push([a,b]);if(Math.random()<.5)L.push([a,N[(Math.random()*n)|0]])}}
+  function frame(t){x.clearRect(0,0,W,H)
+    for(const l of L){const a=l[0],b=l[1];const d=Math.hypot(a.x-b.x,a.y-b.y);if(d>320)continue
+      x.strokeStyle='rgba(120,150,220,'+(0.10*(1-d/320))+')';x.lineWidth=1;x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);x.stroke()
+      if(!reduce){const k=((t/1400)+(a.x*0.001))%1;const px=a.x+(b.x-a.x)*k,py=a.y+(b.y-a.y)*k;x.fillStyle='rgba(180,205,255,.5)';x.beginPath();x.arc(px,py,1.3,0,7);x.fill()}}
+    for(const p of N){if(!reduce){p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1}
+      const g=x.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*5);g.addColorStop(0,p.c+'cc');g.addColorStop(1,p.c+'00');x.fillStyle=g;x.beginPath();x.arc(p.x,p.y,p.r*5,0,7);x.fill()
+      x.fillStyle=p.c;x.beginPath();x.arc(p.x,p.y,p.r,0,7);x.fill()}
+    requestAnimationFrame(frame)}
+  size();build();requestAnimationFrame(frame)
+</script>

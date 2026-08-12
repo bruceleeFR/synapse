@@ -12,7 +12,7 @@ No database, no build step, no dependencies beyond Python 3.
 
 The graph is a window into plain files. Edit the notes, refresh, done.
 """
-import os, re, sys, json, html, http.server, socketserver, threading, webbrowser, urllib.request, urllib.error, urllib.parse, mimetypes
+import os, re, sys, json, html, http.server, socketserver, threading, webbrowser, urllib.request, urllib.error, urllib.parse, mimetypes, subprocess, platform, glob
 
 if getattr(sys, "frozen", False):
     # packaged as a desktop app (.exe / .app) via PyInstaller
@@ -121,7 +121,9 @@ def load_config(vault):
     cfg = {"name": "SYNAPSE", "accent": "#5b8bff", "accent2": "#8f6bff", "logo": "",
            "persona": "JARVIS, a calm, precise British butler assistant",
            "humor": 25, "model": "gpt-4o-mini", "provider": "openai",
-           "openrouter_key": "", "ai_key": "", "voice": "British"}
+           "openrouter_key": "", "ai_key": "", "voice": "British",
+           "allow_os": False, "strict": False, "realtime": False,
+           "hue_bridge": "", "hue_user": "", "hue_lights": []}
     for base in (vault, ROOT):
         p = os.path.join(base, "config.json")
         if os.path.exists(p):
@@ -329,6 +331,13 @@ def jarvis_answer(graph, vault, question, cfg, model=""):
         fact = q[q.lower().find(m.group(1)):]
         add_memory(vault, fact)
         return {"answer": f"Noted. I will remember that {fact}", "spoken": f"Noted. I will remember that.", "sources": [], "focus": []}
+    # intent: confirm a pending machine plan
+    if re.fullmatch(r"(do it|confirm|yes,? do it|go ahead)\.?", ql) and getattr(State, "pending_plan", None):
+        return run_pending_plan()
+    # intent: control the machine by voice (only if allow_os is enabled)
+    oc = os_command(cfg, q)
+    if oc:
+        return oc
     # intent: instant commands (tune, control the app, reminders, tasks)
     cmd = command_intent(q, cfg, graph, vault)
     if cmd:
@@ -566,8 +575,112 @@ def today_focus(graph, vault, cfg):
     return {"answer": ans, "spoken": ans,
             "sources": [{"id": t["id"], "title": t["title"]} for t in tasks[:3]], "focus": focus_ids}
 
+def _run(cmd):
+    try:
+        subprocess.run(cmd, shell=True, timeout=12); return True
+    except Exception:
+        return False
+
+def os_command(cfg, q):
+    """Voice control of the machine. Off unless allow_os is true in config (never on a public demo)."""
+    if not cfg.get("allow_os"):
+        return None
+    ql = q.lower().strip(); sysn = platform.system()
+
+    def ack(a, spoken=None, **extra):
+        d = {"answer": a, "spoken": spoken or a, "sources": [], "focus": []}; d.update(extra); return d
+
+    m = re.search(r"(?:set )?volume (?:to |at )?(\d{1,3})", ql)
+    if m:
+        v = max(0, min(100, int(m.group(1))))
+        if sysn == "Darwin": _run(f"osascript -e 'set volume output volume {v}'")
+        elif sysn == "Linux": _run(f"amixer -q sset Master {v}% || pactl set-sink-volume @DEFAULT_SINK@ {v}%")
+        return ack(f"Volume set to {v}.")
+    if re.search(r"\b(mute|silence)\b", ql):
+        if sysn == "Darwin": _run("osascript -e 'set volume output muted true'")
+        elif sysn == "Linux": _run("amixer -q sset Master mute")
+        return ack("Muted.")
+    if "dark mode" in ql or "evening mode" in ql:
+        if sysn == "Darwin": _run("osascript -e 'tell application \"System Events\" to tell appearance preferences to set dark mode to true'")
+        return ack("Dark mode on.")
+    if "light mode" in ql or "day mode" in ql:
+        if sysn == "Darwin": _run("osascript -e 'tell application \"System Events\" to tell appearance preferences to set dark mode to false'")
+        return ack("Light mode on.")
+    m = re.search(r"\bopen (?:the )?(\w[\w .-]{1,30})", ql)
+    if m and "note" not in ql and "brain" not in ql:
+        app = q[m.start(1):m.end(1)].strip().rstrip(".")
+        if sysn == "Darwin": _run(f"open -a \"{app}\"")
+        elif sysn == "Linux": _run(f"(xdg-open \"{app}\" || setsid \"{app.lower()}\") >/dev/null 2>&1 &")
+        return ack(f"Opening {app}.")
+    m = re.search(r"find (?:my |the )?(.+?)(?: pdf| file| document)?\s*$", ql)
+    if m and "find" in ql:
+        term = m.group(1).strip(); home = os.path.expanduser("~"); hits = []
+        for root, dirs, files in os.walk(home):
+            dirs[:] = [d for d in dirs if not d.startswith(".")]
+            for f in files:
+                if term in f.lower():
+                    hits.append(os.path.join(root, f))
+            if len(hits) >= 6: break
+        if hits:
+            return ack("Found: " + "; ".join(os.path.basename(h) for h in hits[:6]), f"I found {len(hits)} matching {term}.",
+                       card={"kind": "files", "title": "Found on your machine", "items": [{"title": os.path.basename(h), "url": h} for h in hits[:6]]})
+        return ack(f"I could not find anything matching {term}.")
+    if re.search(r"clean(?:\s*up)?\s+(?:my )?downloads", ql):
+        dl = os.path.expanduser("~/Downloads"); files = [f for f in glob.glob(dl + "/*") if os.path.isfile(f)]
+        State.pending_plan = {"type": "clean_downloads", "files": files}
+        return ack(f"Plan: move {len(files)} loose files from Downloads into a dated Archive folder. Say 'do it' to confirm.",
+                   f"I can tidy {len(files)} files from Downloads into an archive. Say do it to confirm.", plan=True)
+    return None
+
+def run_pending_plan():
+    plan = getattr(State, "pending_plan", None)
+    if not plan:
+        return {"answer": "Nothing to confirm.", "spoken": "Nothing to confirm."}
+    State.pending_plan = None
+    if plan["type"] == "clean_downloads":
+        dl = os.path.expanduser("~/Downloads"); dest = os.path.join(dl, "Archive"); os.makedirs(dest, exist_ok=True); n = 0
+        for f in plan["files"]:
+            try:
+                if os.path.isfile(f): os.rename(f, os.path.join(dest, os.path.basename(f))); n += 1
+            except Exception:
+                pass
+        return {"answer": f"Done. Archived {n} files into Downloads/Archive.", "spoken": f"Done. Archived {n} files."}
+    return {"answer": "Done.", "spoken": "Done."}
+
+def hue_pulse(cfg):
+    """Pulse the room lights (Philips Hue) once. Needs hue_bridge + hue_user in config."""
+    bridge, user = cfg.get("hue_bridge"), cfg.get("hue_user")
+    if not bridge or not user:
+        return {"ok": False}
+    lights = cfg.get("hue_lights") or []
+    try:
+        if not lights:
+            data = json.loads(urllib.request.urlopen(f"http://{bridge}/api/{user}/lights", timeout=4).read())
+            lights = list(data.keys())
+        for lid in lights:
+            body = json.dumps({"alert": "select"}).encode()
+            req = urllib.request.Request(f"http://{bridge}/api/{user}/lights/{lid}/state", data=body, method="PUT")
+            urllib.request.urlopen(req, timeout=4)
+        return {"ok": True, "lights": len(lights)}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:120]}
+
+def realtime_token(cfg):
+    """Mint an ephemeral OpenAI Realtime session token so the browser can open a live voice call."""
+    key = cfg.get("ai_key") or env_key()
+    if not key:
+        return {"error": "no key"}
+    try:
+        body = json.dumps({"model": "gpt-4o-realtime-preview", "voice": "verse"}).encode()
+        req = urllib.request.Request("https://api.openai.com/v1/realtime/sessions", data=body,
+            headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"})
+        return json.loads(urllib.request.urlopen(req, timeout=20).read())
+    except Exception as e:
+        return {"error": str(e)[:140]}
+
 # ----------------------------------------------------------------------------- server
 class State:
+    pending_plan = None
     graph = {"meta": {}, "nodes": [], "edges": []}
     config = {}
     vault = "."
@@ -592,6 +705,10 @@ def make_handler():
             if path == "/config.json":
                 safe = {k: State.config.get(k) for k in ("name", "accent", "accent2", "logo", "persona", "humor", "voice")}
                 safe["jarvis"] = bool(State.config.get("ai_key") or State.config.get("openrouter_key") or env_key())
+                safe["strict"] = bool(State.config.get("strict"))
+                safe["realtime"] = bool(State.config.get("realtime") and safe["jarvis"])
+                safe["allow_os"] = bool(State.config.get("allow_os"))
+                safe["hue"] = bool(State.config.get("hue_bridge") and State.config.get("hue_user"))
                 return self._send(200, json.dumps(safe))
             if path == "/rescan":
                 State.graph = scan(State.vault)
@@ -609,6 +726,10 @@ def make_handler():
                 return self._send(200, json.dumps(rediscover(State.graph)))
             if path == "/api/tour":
                 return self._send(200, json.dumps(brain_tour(State.graph)))
+            if path == "/api/hue":
+                return self._send(200, json.dumps(hue_pulse(State.config)))
+            if path == "/api/realtime-token":
+                return self._send(200, json.dumps(realtime_token(State.config)))
             if path == "/api/stats":
                 return self._send(200, json.dumps(brain_stats(State.graph)))
             if path.startswith("/note"):

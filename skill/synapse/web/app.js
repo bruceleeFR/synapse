@@ -483,7 +483,7 @@
       speechSynthesis.cancel()
       const u = new SpeechSynthesisUtterance(String(text).replace(/[#*`>_]/g, '').replace(/\$(\d+)\/mo/g, '$1 dollars a month').slice(0, 700))
       const v = pickVoice(); if (v) u.voice = v; u.rate = 1.02
-      u.onstart = () => { speaking = true; if (callActive) setCallState('speaking', 'Speaking') }
+      u.onstart = () => { speaking = true; if (callActive) setCallState('speaking', 'Speaking'); if (cfg.hue) fetch('/api/hue').catch(() => {}) }
       u.onend = () => { speaking = false; if (callActive) callListen() }
       speechSynthesis.speak(u)
     } catch (e) { }
@@ -491,6 +491,9 @@
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition
   let rec = null, hands = false
   function mkRec(cont) { const r = new SR(); r.lang = 'en-US'; r.interimResults = false; r.continuous = cont; return r }
+  // strict mode: only act when the assistant's name is spoken
+  function nameHit(t) { const s = (t || '').toLowerCase(); const nm = (cfg.name || '').toLowerCase(); return s.includes('jarvis') || s.includes('synapse') || (nm.length > 2 && s.includes(nm)) }
+  function strictOK(t) { return !cfg.strict || nameHit(t) }
   function startMic() {
     if (!SR) { alert('Voice input needs Chrome.'); return }
     $('#jarvis').classList.add('open')
@@ -508,7 +511,7 @@
   }
   function startHands() {
     rec = mkRec(true)
-    rec.onresult = e => { if (speaking) return; const t = e.results[e.results.length - 1][0].transcript.trim(); if (t.length > 1) { $('#jq').value = t; ask() } }
+    rec.onresult = e => { if (speaking) return; const t = e.results[e.results.length - 1][0].transcript.trim(); if (t.length > 1 && strictOK(t)) { $('#jq').value = t; ask() } }
     rec.onend = () => { if (hands) { try { rec.start() } catch (e) { } } }
     try { rec.start() } catch (e) { }
   }
@@ -639,7 +642,8 @@
       if (r.learned) { const b = document.createElement('div'); b.className = 'learned'; b.textContent = '🧠 Remembered: ' + r.learned; el.appendChild(b) }
       if (r.card && r.card.items && r.card.items.length) {
         const c = document.createElement('div'); c.className = 'card'
-        c.innerHTML = '<b>' + (r.card.title || 'What I found') + '</b>' + r.card.items.map(it => `<a href="${it.url}" target="_blank" rel="noopener">${it.title}<small>${(it.url || '').slice(0, 60)}</small></a>`).join('')
+        c.innerHTML = '<button class="cardx" title="Dismiss">×</button><b>' + (r.card.title || 'What I found') + '</b>' + r.card.items.map(it => `<a href="${it.url}" target="_blank" rel="noopener">${it.title}<small>${(it.url || '').slice(0, 60)}</small></a>`).join('')
+        c.querySelector('.cardx').onclick = () => c.remove()
         log.appendChild(c)
       }
       if (callActive) $('#ccap').textContent = r.answer || ''
@@ -725,12 +729,34 @@
   $('#navcall').onclick = callStart
   $('#callend').onclick = callEnd
   function setCallState(s, label) { const c = $('#call'); c.classList.remove('listening', 'thinking', 'speaking'); c.classList.add(s); $('#cstate').textContent = label || s }
+  let rtpc = null, rtStream = null
   function callStart() {
+    if (cfg.realtime) return realtimeCall()   // GPT Realtime engine when enabled
     if (!SR) { alert('Live call needs a browser with speech recognition (Chrome).'); return }
     callActive = true; $('#call').classList.add('open'); $('#ccap').textContent = ''
     setCallState('speaking', 'Speaking'); speak('JARVIS online. How can I help?'); startMeter()
   }
-  function callEnd() { callActive = false; try { callRec && callRec.stop() } catch (e) { } try { speechSynthesis.cancel() } catch (e) { } stopMeter(); $('#call').classList.remove('open') }
+  function callEnd() { callActive = false; try { callRec && callRec.stop() } catch (e) { } try { speechSynthesis.cancel() } catch (e) { } stopMeter(); realtimeEnd(); $('#call').classList.remove('open') }
+  // GPT Realtime: low-latency native voice call over WebRTC
+  async function realtimeCall() {
+    $('#call').classList.add('open'); $('#ccap').textContent = 'Realtime voice'; setCallState('speaking', 'Connecting')
+    try {
+      const tok = await (await fetch('/api/realtime-token')).json()
+      const key = tok.client_secret && tok.client_secret.value
+      if (!key) { setCallState('listening', 'Add an OpenAI key to use Realtime'); return }
+      callActive = true
+      rtpc = new RTCPeerConnection()
+      const audioEl = document.createElement('audio'); audioEl.autoplay = true; document.body.appendChild(audioEl); rtpc._audio = audioEl
+      rtpc.ontrack = e => { audioEl.srcObject = e.streams[0]; setCallState('speaking', 'Speaking') }
+      rtStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      rtStream.getTracks().forEach(t => rtpc.addTrack(t, rtStream))
+      const dc = rtpc.createDataChannel('oai-events'); dc.onopen = () => setCallState('listening', 'Listening')
+      const offer = await rtpc.createOffer(); await rtpc.setLocalDescription(offer)
+      const r = await fetch('https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview', { method: 'POST', body: offer.sdp, headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/sdp' } })
+      await rtpc.setRemoteDescription({ type: 'answer', sdp: await r.text() })
+    } catch (e) { setCallState('listening', 'Realtime failed: ' + e.message) }
+  }
+  function realtimeEnd() { try { rtpc && rtpc.close() } catch (e) { } if (rtpc && rtpc._audio) rtpc._audio.remove(); rtpc = null; if (rtStream) rtStream.getTracks().forEach(t => t.stop()); rtStream = null }
   // real mic amplitude drives the orb + waveform (WebAudio)
   let audioCtx = null, micStream = null, meterRAF = null
   async function startMeter() {
@@ -758,7 +784,7 @@
   function callListen() {
     if (!callActive) return
     callBusy = false; setCallState('listening', 'Listening'); callRec = mkRec(true)
-    callRec.onresult = e => { if (speaking) return; const t = e.results[e.results.length - 1][0].transcript.trim(); if (t.length > 1) { $('#ccap').textContent = t; callBusy = true; setCallState('thinking', 'Thinking'); try { callRec.stop() } catch (e) { }; $('#jq').value = t; ask() } }
+    callRec.onresult = e => { if (speaking) return; const t = e.results[e.results.length - 1][0].transcript.trim(); if (t.length > 1 && strictOK(t)) { $('#ccap').textContent = t; callBusy = true; setCallState('thinking', 'Thinking'); try { callRec.stop() } catch (e) { }; $('#jq').value = t; ask() } }
     callRec.onerror = () => { }
     callRec.onend = () => { if (callActive && !callBusy && !speaking) { try { callRec.start() } catch (e) { } } }
     try { callRec.start() } catch (e) { }

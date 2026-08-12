@@ -1,0 +1,11 @@
+const { chromium } = require('/opt/lamarca-web-studio/node_modules/playwright')
+const fs=require('fs'); const LOG='/tmp/claude-0/-root--openclaw-workspace/6b327273-6640-43e8-9cd2-01cc39ea3000/scratchpad/cshot.log'
+const log=(...a)=>fs.appendFileSync(LOG,a.join(' ')+'\n'); fs.writeFileSync(LOG,'cshot\n')
+;(async()=>{const b=await chromium.connectOverCDP('http://127.0.0.1:9224',{timeout:15000});const ctx=b.contexts()[0];const p=await ctx.newPage()
+await p.setViewportSize({width:1440,height:1400})
+await p.goto('https://www.skool.com/house-of-lamarca-/classroom/7ae572c5',{waitUntil:'domcontentloaded',timeout:30000}).catch(e=>log('nav',e.message))
+await p.waitForTimeout(4500)
+const rows=await p.evaluate(()=>[...document.querySelectorAll('*')].filter(e=>{const r=e.getBoundingClientRect();return e.children.length===0&&r.x>170&&r.x<520&&r.y>195&&r.y<1380&&e.textContent.trim()&&e.textContent.trim().length<70}).map(e=>{const r=e.getBoundingClientRect();return e.textContent.trim()+'  @y'+Math.round(r.y)+' x'+Math.round(r.x)}))
+log('sidebar:\n'+[...new Set(rows)].join('\n'))
+await p.screenshot({path:'/opt/synapse/course/claude_view.png'})
+log('DONE');await b.close()})().catch(e=>log('ERR',e.message))

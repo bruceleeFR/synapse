@@ -1,0 +1,35 @@
+<meta charset="utf-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;600;700&display=swap');
+  *{margin:0;box-sizing:border-box}
+  html,body{width:1460px;height:752px;overflow:hidden;font-family:'Oswald','DejaVu Sans',system-ui,sans-serif}
+  .stage{position:relative;width:1460px;height:752px;overflow:hidden;background:#0a0603}
+  .bg{position:absolute;inset:0;background:url('file:///opt/synapse/course/brain-raw.png') center/cover no-repeat}
+  .scrim{position:absolute;inset:0;background:
+     linear-gradient(90deg,rgba(6,4,2,.94) 6%,rgba(8,5,3,.72) 34%,rgba(8,5,3,.15) 55%,transparent 72%),
+     radial-gradient(700px 620px at 20% 82%,rgba(255,90,20,.14),transparent 55%)}
+  .fr{position:absolute;inset:26px;border:1px solid rgba(255,140,40,.22);border-radius:20px;pointer-events:none}
+  .lab{position:absolute;top:56px;left:72px;font-size:20px;letter-spacing:.42em;color:#e0a457;font-weight:700;text-shadow:0 2px 12px rgba(0,0,0,.8)}
+  .txt{position:absolute;left:72px;top:214px}
+  .txt h1{font-family:'Anton','Oswald',sans-serif;font-size:150px;line-height:.9;font-weight:400;letter-spacing:.01em;text-transform:uppercase;
+    background:linear-gradient(108deg,#ffe0ab,#ffb454 45%,#ff7a1a);-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 4px 30px rgba(0,0,0,.7)) drop-shadow(0 0 42px rgba(255,140,40,.35))}
+  .txt p{margin-top:26px;font-size:31px;letter-spacing:.16em;color:#ffe9cf;font-weight:700;text-transform:uppercase;text-shadow:0 2px 12px rgba(0,0,0,.85)}
+  .txt .sub{margin-top:12px;font-size:20px;color:#d3a980;letter-spacing:.02em;font-weight:600;max-width:600px;text-shadow:0 2px 10px rgba(0,0,0,.85)}
+  .mk{position:absolute;bottom:54px;left:72px;display:flex;align-items:center;gap:14px}
+  .mk .b{width:30px;height:30px;border-radius:9px;background:conic-gradient(from 0deg,#ffb454,#ff7a1a,#ffb454);box-shadow:0 0 20px rgba(255,140,40,.6);position:relative}
+  .mk .b::after{content:"";position:absolute;inset:6px;border-radius:5px;background:#0a0603}
+  .mk span{font-size:19px;letter-spacing:.3em;color:#e6bd93;font-weight:800;text-shadow:0 2px 10px rgba(0,0,0,.85)}
+</style>
+<div class="stage">
+  <div class="bg"></div>
+  <div class="scrim"></div>
+  <div class="fr"></div>
+  <div class="lab">HOUSE OF LAMARCA &nbsp;·&nbsp; 06 &nbsp;·&nbsp; JARVIS</div>
+  <div class="txt">
+    <h1>BUILD YOUR<br>JARVIS</h1>
+    <p>YOUR NOTES, ALIVE.</p>
+    <div class="sub">Turn a folder of notes into a living brain that answers from your own words.</div>
+  </div>
+  <div class="mk"><span class="b"></span><span>SECOND BRAIN</span></div>
+</div>

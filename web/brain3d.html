@@ -211,6 +211,9 @@
   .ji #jmic:hover,.ji #jhands:hover{border-color:var(--a)}
   .ji .on{background:linear-gradient(120deg,var(--a),var(--a2))!important;border-color:transparent!important;box-shadow:0 0 0 3px rgba(91,139,255,.25);animation:pulse 1.2s infinite}
   .card{align-self:flex-start;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02);padding:12px 14px;max-width:96%}
+  .card{position:relative}
+  .card .cardx{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:7px;border:1px solid var(--line);background:transparent;color:var(--dim);cursor:pointer;font-size:14px;line-height:1}
+  .card .cardx:hover{color:#fff;border-color:var(--a)}
   .card b{font-size:12px;letter-spacing:.06em;color:var(--a);text-transform:uppercase}
   .card a{display:block;color:var(--ink);font-size:13px;margin-top:7px;text-decoration:none}
   .card a:hover{color:var(--a)}
@@ -534,8 +537,10 @@
   let speaking=false,voicePref=null
   function pickVoice(){const vs=speechSynthesis.getVoices();if(voicePref){const v=vs.find(v=>v.name.toLowerCase().includes(voicePref.toLowerCase()));if(v)return v}return vs.find(v=>/en-GB/i.test(v.lang)&&/(daniel|george|arthur|oliver|male)/i.test(v.name))||vs.find(v=>/en-GB/i.test(v.lang))||vs.find(v=>/en[-_]/i.test(v.lang))||vs[0]}
   try{speechSynthesis.onvoiceschanged=pickVoice}catch(e){}
-  function speak(t){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(t).replace(/[#*`>_]/g,'').slice(0,700));const v=pickVoice();if(v)u.voice=v;u.rate=1.02;u.onstart=()=>{speaking=true;if(callActive)setCallState('speaking','Speaking')};u.onend=()=>{speaking=false;if(callActive)callListen()};speechSynthesis.speak(u)}catch(e){}}
+  function speak(t){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(t).replace(/[#*`>_]/g,'').slice(0,700));const v=pickVoice();if(v)u.voice=v;u.rate=1.02;u.onstart=()=>{speaking=true;if(callActive)setCallState('speaking','Speaking');if(cfg.hue)fetch('/api/hue').catch(()=>{})};u.onend=()=>{speaking=false;if(callActive)callListen()};speechSynthesis.speak(u)}catch(e){}}
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition
+  function nameHit(t){const s=(t||'').toLowerCase();const nm=(cfg.name||'').toLowerCase();return s.includes('jarvis')||s.includes('synapse')||(nm.length>2&&s.includes(nm))}
+  function strictOK(t){return !cfg.strict||nameHit(t)}
   let rec=null,hands=false
   function mkRec(c){const r=new SR();r.lang='en-US';r.interimResults=false;r.continuous=c;return r}
   document.querySelector('#jmic').onclick=()=>{if(!SR){alert('Voice input needs Chrome.');return}document.querySelector('#jarvis').classList.add('open');const r=mkRec(false);document.querySelector('#jmic').classList.add('on');r.onresult=e=>{document.querySelector('#jq').value=e.results[0][0].transcript;ask()};r.onerror=r.onend=()=>document.querySelector('#jmic').classList.remove('on');r.start()}
@@ -553,7 +558,7 @@
       el.innerHTML=(r.answer||'').replace(/[<>]/g,c=>({'<':'&lt;','>':'&gt;'}[c])).replace(/\n/g,'<br>')
       if(r.sources&&r.sources.length){const s=document.createElement('div');s.className='src';r.sources.forEach(so=>{const b=document.createElement('span');b.textContent=so.title;b.onclick=()=>focus3d([so.id]);s.appendChild(b)});el.appendChild(s)}
       if(r.learned){const bb=document.createElement('div');bb.className='learned';bb.textContent='🧠 Remembered: '+r.learned;el.appendChild(bb)}
-      if(r.card&&r.card.items&&r.card.items.length){const c=document.createElement('div');c.className='card';c.innerHTML='<b>'+(r.card.title||'What I found')+'</b>'+r.card.items.map(it=>`<a href="${it.url}" target="_blank" rel="noopener">${it.title}<small>${(it.url||'').slice(0,60)}</small></a>`).join('');log.appendChild(c)}
+      if(r.card&&r.card.items&&r.card.items.length){const c=document.createElement('div');c.className='card';c.innerHTML='<button class="cardx" title="Dismiss">×</button><b>'+(r.card.title||'What I found')+'</b>'+r.card.items.map(it=>`<a href="${it.url}" target="_blank" rel="noopener">${it.title}<small>${(it.url||'').slice(0,60)}</small></a>`).join('');c.querySelector('.cardx').onclick=()=>c.remove();log.appendChild(c)}
       if(callActive)document.querySelector('#ccap').textContent=r.answer||''
       focus3d(r.focus);speak(r.spoken||r.answer);executeAction(r.action)
     }catch(e){el.textContent='JARVIS offline: '+e.message}
@@ -709,8 +714,11 @@
   // ---- Call JARVIS (live voice conversation)
   let callActive=false,callRec=null,callBusy=false
   function setCallState(s,label){const c=document.querySelector('#call');c.classList.remove('listening','thinking','speaking');c.classList.add(s);document.querySelector('#cstate').textContent=label||s}
-  function callStart(){if(!SR){alert('Live call needs a browser with speech recognition (Chrome).');return}callActive=true;document.querySelector('#call').classList.add('open');document.querySelector('#ccap').textContent='';setCallState('speaking','Speaking');speak('JARVIS online. How can I help?');startMeter()}
-  function callEnd(){callActive=false;try{callRec&&callRec.stop()}catch(e){}try{speechSynthesis.cancel()}catch(e){}stopMeter();document.querySelector('#call').classList.remove('open')}
+  let rtpc=null,rtStream=null
+  function callStart(){if(cfg.realtime)return realtimeCall();if(!SR){alert('Live call needs a browser with speech recognition (Chrome).');return}callActive=true;document.querySelector('#call').classList.add('open');document.querySelector('#ccap').textContent='';setCallState('speaking','Speaking');speak('JARVIS online. How can I help?');startMeter()}
+  function callEnd(){callActive=false;try{callRec&&callRec.stop()}catch(e){}try{speechSynthesis.cancel()}catch(e){}stopMeter();realtimeEnd();document.querySelector('#call').classList.remove('open')}
+  async function realtimeCall(){document.querySelector('#call').classList.add('open');document.querySelector('#ccap').textContent='Realtime voice';setCallState('speaking','Connecting');try{const tok=await(await fetch('/api/realtime-token')).json();const key=tok.client_secret&&tok.client_secret.value;if(!key){setCallState('listening','Add an OpenAI key');return}callActive=true;rtpc=new RTCPeerConnection();const a=document.createElement('audio');a.autoplay=true;document.body.appendChild(a);rtpc._a=a;rtpc.ontrack=e=>{a.srcObject=e.streams[0];setCallState('speaking','Speaking')};rtStream=await navigator.mediaDevices.getUserMedia({audio:true});rtStream.getTracks().forEach(t=>rtpc.addTrack(t,rtStream));const dc=rtpc.createDataChannel('oai-events');dc.onopen=()=>setCallState('listening','Listening');const o=await rtpc.createOffer();await rtpc.setLocalDescription(o);const r=await fetch('https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview',{method:'POST',body:o.sdp,headers:{Authorization:'Bearer '+key,'Content-Type':'application/sdp'}});await rtpc.setRemoteDescription({type:'answer',sdp:await r.text()})}catch(e){setCallState('listening','Realtime failed')}}
+  function realtimeEnd(){try{rtpc&&rtpc.close()}catch(e){}if(rtpc&&rtpc._a)rtpc._a.remove();rtpc=null;if(rtStream)rtStream.getTracks().forEach(t=>t.stop());rtStream=null}
   let audioCtx=null,micStream=null,meterRAF=null
   async function startMeter(){try{micStream=await navigator.mediaDevices.getUserMedia({audio:true});audioCtx=new (window.AudioContext||window.webkitAudioContext)();const src=audioCtx.createMediaStreamSource(micStream),an=audioCtx.createAnalyser();an.fftSize=64;src.connect(an);const data=new Uint8Array(an.frequencyBinCount),bars=[...document.querySelector('#wave').children],orb=document.querySelector('#call .corb span');const tick=()=>{an.getByteFrequencyData(data);let s=0;for(const v of data)s+=v;const amp=s/data.length/255;if(orb)orb.style.transform='scale('+(1+amp*0.6)+')';bars.forEach((b,i)=>{const v=data[i%data.length]/255;b.style.height=(6+v*28)+'px';b.style.opacity=(0.4+v*0.6)});meterRAF=requestAnimationFrame(tick)};tick()}catch(e){}}
   function stopMeter(){if(meterRAF)cancelAnimationFrame(meterRAF);meterRAF=null;if(micStream)micStream.getTracks().forEach(t=>t.stop());micStream=null;if(audioCtx){try{audioCtx.close()}catch(e){}audioCtx=null}const orb=document.querySelector('#call .corb span');if(orb)orb.style.transform='';const w=document.querySelector('#wave');if(w)[...w.children].forEach(b=>{b.style.height='';b.style.opacity=''})}
@@ -718,7 +726,7 @@
   let clusterMode=false; const tagColorMap={}
   function colorFor(n){if(!clusterMode)return colorOf[n.folder]||0x5b8bff;const k=(n.tags&&n.tags[0])||n.folder;if(tagColorMap[k]==null)tagColorMap[k]=PALETTE[Object.keys(tagColorMap).length%PALETTE.length];return tagColorMap[k]}
   function recolor(){N.forEach(n=>{const o=byId.get(n.id);if(!o)return;const c=colorFor(n);o.mesh.material.color.setHex(c);o.sprite.material.color.setHex(c)})}
-  function callListen(){if(!callActive)return;callBusy=false;setCallState('listening','Listening');callRec=mkRec(true);callRec.onresult=e=>{if(speaking)return;const t=e.results[e.results.length-1][0].transcript.trim();if(t.length>1){document.querySelector('#ccap').textContent=t;callBusy=true;setCallState('thinking','Thinking');try{callRec.stop()}catch(e){}document.querySelector('#jq').value=t;ask()}};callRec.onerror=()=>{};callRec.onend=()=>{if(callActive&&!callBusy&&!speaking){try{callRec.start()}catch(e){}}};try{callRec.start()}catch(e){}}
+  function callListen(){if(!callActive)return;callBusy=false;setCallState('listening','Listening');callRec=mkRec(true);callRec.onresult=e=>{if(speaking)return;const t=e.results[e.results.length-1][0].transcript.trim();if(t.length>1&&strictOK(t)){document.querySelector('#ccap').textContent=t;callBusy=true;setCallState('thinking','Thinking');try{callRec.stop()}catch(e){}document.querySelector('#jq').value=t;ask()}};callRec.onerror=()=>{};callRec.onend=()=>{if(callActive&&!callBusy&&!speaking){try{callRec.start()}catch(e){}}};try{callRec.start()}catch(e){}}
   document.querySelector('#navcall').onclick=callStart
   document.querySelector('#callend').onclick=callEnd
 

@@ -100,6 +100,32 @@ Drop a `config.json` in your notes folder:
 
 The brand mark, the accents and the whole look follow.
 
+### All config options
+
+```json
+{
+  "name": "SYNAPSE",
+  "accent": "#5b8bff",
+  "accent2": "#8f6bff",
+  "ai_key": "sk-...",
+  "openrouter_key": "sk-or-...",
+  "persona": "JARVIS, a calm British butler",
+  "humor": 25,
+  "voice": "George",
+  "strict": false,
+  "allow_os": false,
+  "realtime": false,
+  "hue_bridge": "",
+  "hue_user": "",
+  "hue_lights": []
+}
+```
+
+- **strict**: JARVIS only acts when you say his name.
+- **allow_os**: lets JARVIS control your machine by voice (volume, dark mode, open apps, find files, tidy Downloads with a plan first). Off by default. Turn it on only on your own machine, never on a public server.
+- **realtime**: use the OpenAI Realtime voice engine for the call, instead of the browser voice.
+- **hue_bridge / hue_user**: your Philips Hue bridge IP and API user. The room pulses while JARVIS speaks.
+
 ## Make it a desktop app
 
 Build a single double click app with no Python needed on the target machine:
