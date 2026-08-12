@@ -807,6 +807,15 @@ def make_handler():
             p = os.path.join(WEB, name)
             if not os.path.exists(p): return self._send(404, b"missing")
             ctype = mimetypes.guess_type(p)[0] or "text/html"
+            if ctype == "text/html":
+                html = open(p, "r", encoding="utf-8").read()
+                def stamp(m):  # auto cache-bust local .js/.css by file mtime -> Cloudflare always fresh
+                    rel = m.group(2)
+                    fp = os.path.join(WEB, rel.lstrip("/"))
+                    if not os.path.exists(fp): return m.group(0)
+                    return '%s="%s?v=%d"' % (m.group(1), rel, int(os.path.getmtime(fp)))
+                html = re.sub(r'(src|href)="(/[^"?]+\.(?:js|css))(?:\?[^"]*)?"', stamp, html)
+                return self._send(200, html, ctype)
             with open(p, "rb") as f:
                 self._send(200, f.read(), ctype)
     return H
