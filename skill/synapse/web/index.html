@@ -240,6 +240,9 @@
   .grow{display:flex;flex-direction:column;gap:2px;padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
   .grow b{font-size:14px;color:var(--ink)}
   .grow span{font-size:13px;color:var(--dim);line-height:1.42}
+  #keynudge{display:none;margin:0 0 8px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:linear-gradient(120deg,rgba(91,139,255,.14),rgba(143,107,255,.14));font-size:12.5px;color:var(--ink);align-items:center;gap:8px}
+  #keynudge.on{display:flex;flex-wrap:wrap}
+  #keynudge #knb{margin-left:auto;padding:6px 12px;border-radius:9px;border:0;background:linear-gradient(120deg,var(--a),var(--a2));color:#fff;font:inherit;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap}
   .wbox{max-width:460px;background:var(--glass2);border:1px solid var(--line);border-radius:20px;padding:30px 28px;box-shadow:0 30px 90px rgba(0,0,0,.6)}
   .wbox .wlogo{width:46px;height:46px;border-radius:12px;background:conic-gradient(from 0deg,var(--a),var(--a2),var(--a));box-shadow:0 0 24px rgba(91,139,255,.6);margin-bottom:16px;position:relative}
   .wbox .wlogo::after{content:"";position:absolute;inset:8px;border-radius:7px;background:var(--bg2)}
@@ -441,6 +444,7 @@
 
 <section class="jarvis" id="jarvis">
   <div class="jh"><span class="mk"></span><b>JARVIS</b><small data-t="jsub">answers from your notes</small></div>
+  <div id="keynudge"><span data-t="nudge_txt">JARVIS is in offline mode. Add your key for spoken, smarter answers.</span><button id="knb" data-t="nudge_btn">Connect JARVIS</button></div>
   <div class="jlog" id="jlog"><div class="hint" data-t="jhint">Ask anything about your brain. Try "what do we sell?" or hit Brain Gaps.</div></div>
   <div class="ji">
     <button id="jmic" title="Push to talk">🎙</button>

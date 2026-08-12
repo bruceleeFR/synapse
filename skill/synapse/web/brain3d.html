@@ -169,6 +169,9 @@
   .grow{display:flex;flex-direction:column;gap:2px;padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
   .grow b{font-size:14px;color:var(--ink)}
   .grow span{font-size:13px;color:var(--dim);line-height:1.42}
+  #keynudge{display:none;margin:0 0 8px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:linear-gradient(120deg,rgba(91,139,255,.14),rgba(143,107,255,.14));font-size:12.5px;color:var(--ink);align-items:center;gap:8px}
+  #keynudge.on{display:flex;flex-wrap:wrap}
+  #keynudge #knb{margin-left:auto;padding:6px 12px;border-radius:9px;border:0;background:linear-gradient(120deg,var(--a),var(--a2));color:#fff;font:inherit;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap}
   .wbox{max-width:460px;background:rgba(9,14,26,.96);border:1px solid var(--line);border-radius:20px;padding:30px 28px;box-shadow:0 30px 90px rgba(0,0,0,.6)}
   .wbox .wlogo{width:46px;height:46px;border-radius:12px;background:conic-gradient(from 0deg,var(--a),var(--a2),var(--a));box-shadow:0 0 24px rgba(91,139,255,.6);margin-bottom:16px;position:relative}
   .wbox .wlogo::after{content:"";position:absolute;inset:8px;border-radius:7px;background:#04070f}
@@ -391,6 +394,7 @@
 
 <section class="jarvis" id="jarvis">
   <div class="jh"><span class="mk"></span><b>JARVIS</b><small>flies you to the answer</small></div>
+  <div id="keynudge"><span data-t="nudge_txt">JARVIS is in offline mode. Add your key for spoken, smarter answers.</span><button id="knb" data-t="nudge_btn">Connect JARVIS</button></div>
   <div class="jlog" id="jlog"><div class="hint">Ask your brain out loud. Try "where are my offers?" and watch it fly.</div></div>
   <div class="ji">
     <button id="jmic" title="Push to talk">🎙</button>
@@ -783,9 +787,10 @@
   // settings
   const setpop=document.querySelector('#setpop')
   function updateConn(ok){const c=document.querySelector('#conn');if(!c)return;c.classList.toggle('ok',!!ok);document.querySelector('#connTxt').textContent=ok?window.SYN_T('t_conn1'):window.SYN_T('t_conn0')}
-  document.querySelector('#navset').onclick=()=>{setpop.classList.toggle('open');if(setpop.classList.contains('open')){document.querySelector('#setPersona').value=cfg.persona||'';document.querySelector('#setHumor').value=cfg.humor??25;document.querySelector('#humVal').textContent=cfg.humor??25;document.querySelector('#setModel').value=cfg.model||'';updateConn(cfg.jarvis)}}
+  function refreshNudge(){const n=document.querySelector('#keynudge');if(n)n.classList.toggle('on',!cfg.jarvis&&!cfg.demo)}
+  document.querySelector('#navset').onclick=()=>{setpop.classList.toggle('open');if(setpop.classList.contains('open')){document.querySelector('#setPersona').value=cfg.persona||'';document.querySelector('#setHumor').value=cfg.humor??25;document.querySelector('#humVal').textContent=cfg.humor??25;document.querySelector('#setModel').value=cfg.model||'';updateConn(cfg.jarvis);if(!cfg.jarvis)setTimeout(()=>{const k=document.querySelector('#setKey');if(k)k.focus()},60)}}
   document.querySelector('#setHumor').addEventListener('input',e=>document.querySelector('#humVal').textContent=e.target.value)
-  document.querySelector('#setSave').onclick=async()=>{const body={persona:document.querySelector('#setPersona').value,humor:+document.querySelector('#setHumor').value,model:document.querySelector('#setModel').value};if(document.querySelector('#setKey').value.trim())body.ai_key=document.querySelector('#setKey').value.trim();if(document.querySelector('#setOR').value.trim())body.openrouter_key=document.querySelector('#setOR').value.trim();cfg.persona=body.persona;cfg.humor=body.humor;cfg.model=body.model;const r=await(await fetch('/api/set',{method:'POST',body:JSON.stringify(body)})).json();cfg.jarvis=r.jarvis;updateConn(r.jarvis);document.querySelector('#setKey').value='';document.querySelector('#setOR').value='';setpop.classList.remove('open');const log=document.querySelector('#jlog');const h=log.querySelector('.hint');if(h)h.remove();log.insertAdjacentHTML('beforeend',`<div class="msg a"><b>JARVIS</b><br>${r.jarvis?'Connected and recalibrated. I am fully online.':'Settings saved. Add a key to bring me fully online.'}</div>`);log.scrollTop=log.scrollHeight}
+  document.querySelector('#setSave').onclick=async()=>{const body={persona:document.querySelector('#setPersona').value,humor:+document.querySelector('#setHumor').value,model:document.querySelector('#setModel').value};if(document.querySelector('#setKey').value.trim())body.ai_key=document.querySelector('#setKey').value.trim();if(document.querySelector('#setOR').value.trim())body.openrouter_key=document.querySelector('#setOR').value.trim();cfg.persona=body.persona;cfg.humor=body.humor;cfg.model=body.model;const r=await(await fetch('/api/set',{method:'POST',body:JSON.stringify(body)})).json();cfg.jarvis=r.jarvis;updateConn(r.jarvis);refreshNudge();document.querySelector('#setKey').value='';document.querySelector('#setOR').value='';setpop.classList.remove('open');const log=document.querySelector('#jlog');const h=log.querySelector('.hint');if(h)h.remove();log.insertAdjacentHTML('beforeend',`<div class="msg a"><b>JARVIS</b><br>${r.jarvis?'Connected and recalibrated. I am fully online.':'Settings saved. Add a key to bring me fully online.'}</div>`);log.scrollTop=log.scrollHeight}
 
   // ---- Call JARVIS (live voice conversation)
   let callActive=false,callRec=null,callBusy=false
@@ -853,6 +858,8 @@
   COMMANDS.push({t:'What is SYNAPSE? (help)',k:'help',run:showWelcome})
   document.querySelectorAll('.langopt').forEach(o=>o.onclick=()=>window.SYN_setLang(o.dataset.lang))
   {const g=document.querySelector('#guide'),openG=()=>g&&g.classList.add('open'),closeG=()=>g&&g.classList.remove('open');const hb=document.querySelector('#help');if(hb)hb.onclick=openG;const wg=document.querySelector('#wguide');if(wg)wg.onclick=openG;const gc=document.querySelector('#gclose');if(gc)gc.onclick=closeG;if(g)g.addEventListener('click',e=>{if(e.target.id==='guide')closeG()});window.addEventListener('keydown',e=>{if(e.key==='Escape')closeG()})}
+  {const kb=document.querySelector('#knb');if(kb)kb.onclick=()=>{document.querySelector('#navset').click();setTimeout(()=>{const k=document.querySelector('#setKey');if(k)k.focus()},90)}}
+  refreshNudge()
   {const cr=document.querySelector('#credit');if(cr)cr.href=window.SYN_LINKEDIN}
   window.SYN_applyLang()
   document.querySelector('#wtour').onclick=()=>{document.querySelector('#welcome').classList.remove('open');try{localStorage.setItem('synapse_seen','1')}catch(e){}runTour3d()}

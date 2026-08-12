@@ -710,9 +710,10 @@
   const setpop = $('#setpop')
   $('#navset').onclick = () => {
     setpop.classList.toggle('open')
-    if (setpop.classList.contains('open')) { $('#setPersona').value = cfg.persona || ''; $('#setHumor').value = cfg.humor ?? 25; $('#humVal').textContent = cfg.humor ?? 25; $('#setModel').value = cfg.model || ''; updateConn(cfg.jarvis) }
+    if (setpop.classList.contains('open')) { $('#setPersona').value = cfg.persona || ''; $('#setHumor').value = cfg.humor ?? 25; $('#humVal').textContent = cfg.humor ?? 25; $('#setModel').value = cfg.model || ''; updateConn(cfg.jarvis); if (!cfg.jarvis) setTimeout(() => { const k = $('#setKey'); if (k) k.focus() }, 60) }
   }
   function updateConn(ok) { const c = $('#conn'); if (!c) return; c.classList.toggle('ok', !!ok); $('#connTxt').textContent = ok ? T('t_conn1') : T('t_conn0') }
+  function refreshNudge() { const n = $('#keynudge'); if (n) n.classList.toggle('on', !cfg.jarvis && !cfg.demo) }
   $('#setHumor').addEventListener('input', e => $('#humVal').textContent = e.target.value)
   $('#setSave').onclick = async () => {
     const body = { persona: $('#setPersona').value, humor: +$('#setHumor').value, model: $('#setModel').value }
@@ -720,7 +721,7 @@
     if ($('#setOR').value.trim()) body.openrouter_key = $('#setOR').value.trim()
     cfg.persona = body.persona; cfg.humor = body.humor; cfg.model = body.model
     const r = await (await fetch('/api/set', { method: 'POST', body: JSON.stringify(body) })).json()
-    cfg.jarvis = r.jarvis; updateConn(r.jarvis); $('#setKey').value = ''; $('#setOR').value = ''
+    cfg.jarvis = r.jarvis; updateConn(r.jarvis); refreshNudge(); $('#setKey').value = ''; $('#setOR').value = ''
     setpop.classList.remove('open')
     const log = $('#jlog'); const hint = log.querySelector('.hint'); if (hint) hint.remove()
     log.insertAdjacentHTML('beforeend', `<div class="msg a"><b>JARVIS</b><br>${r.jarvis ? 'Connected and recalibrated. I am fully online.' : 'Settings saved. Add a key to bring me fully online.'}</div>`); log.scrollTop = log.scrollHeight
@@ -906,6 +907,8 @@
     const gc = $('#gclose'); if (gc) gc.onclick = closeG
     if (g) g.addEventListener('click', e => { if (e.target.id === 'guide') closeG() })
     window.addEventListener('keydown', e => { if (e.key === 'Escape') closeG() }) }
+  { const kb = $('#knb'); if (kb) kb.onclick = () => { $('#navset').click(); setTimeout(() => { const k = $('#setKey'); if (k) k.focus() }, 90) } }
+  refreshNudge()
   { const cr = $('#credit'), wc = $('#wcredit'); if (cr) cr.href = LINKEDIN; if (wc) wc.href = LINKEDIN }
   applyLang()
 
