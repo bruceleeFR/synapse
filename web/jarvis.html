@@ -1,0 +1,183 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>JARVIS</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- Orb concept inspired by the MIT-licensed "Ultron" orb by Sagar Tamang (github.com/SAGAR-TAMANG). Implementation is original. -->
+<style>
+  :root{--ink:#dbe9ff;--dim:#5f7699;--a:#7fb6ff;--a2:#bfe0ff;--line:rgba(120,170,255,.16)}
+  *{margin:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:#03050c;color:var(--ink);font-family:'DejaVu Sans Mono',monospace}
+  canvas{display:block;position:fixed;inset:0}
+  .br{position:fixed;z-index:4;width:26px;height:26px;border:2px solid rgba(91,139,255,.3);pointer-events:none}
+  .tl{top:12px;left:12px;border-right:0;border-bottom:0}.tr{top:12px;right:12px;border-left:0;border-bottom:0}
+  .bl{bottom:12px;left:12px;border-right:0;border-top:0}.brr{bottom:12px;right:12px;border-left:0;border-top:0}
+  #hud{position:fixed;z-index:5;inset:0;pointer-events:none}
+  .brand{position:absolute;top:26px;left:50%;transform:translateX(-50%);text-align:center}
+  .brand b{font-size:15px;letter-spacing:.5em;color:#eaf3ff;font-weight:700}
+  .brand span{display:block;margin-top:5px;font-size:9px;letter-spacing:.3em;color:var(--dim);text-transform:uppercase}
+  #state{position:absolute;top:50%;left:50%;transform:translate(-50%,150px);font-size:10px;letter-spacing:.34em;color:var(--a2);text-transform:uppercase;transition:.3s}
+  #resp{position:absolute;left:50%;top:12%;transform:translateX(-50%);width:min(680px,88vw);text-align:center;font-family:'DejaVu Sans',sans-serif;font-size:16.5px;line-height:1.55;color:#eaf3ff;text-shadow:0 0 18px rgba(120,180,255,.5);opacity:0;transition:opacity .4s}
+  #resp.on{opacity:1}
+  .doors{position:absolute;left:50%;bottom:104px;transform:translateX(-50%);display:flex;gap:12px;pointer-events:auto}
+  .door{display:flex;align-items:center;gap:9px;padding:10px 18px;border:1px solid var(--line);border-radius:24px;background:rgba(8,15,32,.55);backdrop-filter:blur(12px);color:var(--a2);text-decoration:none;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;transition:.2s}
+  .door:hover{border-color:var(--a);color:#fff;box-shadow:0 0 24px rgba(90,150,255,.25)}
+  .door svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.7}
+  #bar{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;width:min(520px,92vw);padding:8px;border:1px solid var(--line);border-radius:40px;background:rgba(8,15,32,.55);backdrop-filter:blur(12px);pointer-events:auto;transition:.3s}
+  #bar.live{border-color:var(--a);box-shadow:0 0 30px rgba(90,150,255,.3)}
+  #mic{flex:0 0 40px;width:40px;height:40px;border-radius:50%;border:0;cursor:pointer;background:linear-gradient(160deg,#2a4d8f,#12213f);display:flex;align-items:center;justify-content:center}
+  #mic svg{width:17px;height:17px;stroke:#cfe4ff;fill:none;stroke-width:1.8}
+  #mic.rec{background:linear-gradient(160deg,#8f2a2a,#3f1212);box-shadow:0 0 18px rgba(255,90,90,.5)}
+  #q{flex:1;background:transparent;border:0;outline:none;color:var(--ink);font:inherit;font-size:13px;letter-spacing:.02em}
+  #q::placeholder{color:#44587c}
+  @media (max-width:760px){ .doors{bottom:96px;gap:8px} .door{padding:9px 13px;font-size:9.5px} }
+  #license{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:20px;background:radial-gradient(800px 600px at 50% 40%,rgba(20,40,90,.6),rgba(3,5,12,.98));backdrop-filter:blur(10px)}
+  #license.open{display:flex}
+  .licbox{width:min(420px,94vw);text-align:center;background:rgba(9,14,26,.97);border:1px solid var(--line);border-radius:20px;padding:34px 30px;font-family:'DejaVu Sans',sans-serif}
+  .licbox .wlogo{width:46px;height:46px;border-radius:12px;margin:0 auto 16px;background:conic-gradient(from 0deg,var(--a),var(--a2),var(--a));box-shadow:0 0 24px rgba(91,139,255,.6);position:relative}
+  .licbox .wlogo::after{content:"";position:absolute;inset:8px;border-radius:7px;background:#04070f}
+  .licbox h2{font-size:22px;margin-bottom:8px;color:var(--ink)}
+  .licbox p{color:var(--dim);font-size:13.5px;margin-bottom:18px}
+  .licbox input{width:100%;padding:13px 14px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--ink);font:inherit;font-size:16px;text-align:center;letter-spacing:.1em;text-transform:uppercase;outline:none}
+  .licbox input:focus{border-color:var(--a)}
+  .licbox button{width:100%;margin-top:12px;padding:13px;border-radius:11px;border:0;background:linear-gradient(120deg,var(--a),var(--a2));color:#04070f;font:inherit;font-weight:700;font-size:15px;cursor:pointer}
+  .licmsg{min-height:18px;margin-top:10px;font-size:12.5px;color:#ff6b6b}
+  #licget{display:block;margin-top:16px;font-size:13px;color:var(--a);text-decoration:none}
+  .liccredit{display:block;margin-top:18px;font-size:11px;color:#5a6b8c;text-decoration:none}
+</style>
+<canvas id="c"></canvas>
+<div class="br tl"></div><div class="br tr"></div><div class="br bl"></div><div class="br brr"></div>
+<div id="hud">
+  <div class="brand"><b>J A R V I S</b><span>house of lamarca · unified interface</span></div>
+  <div id="resp"></div>
+  <div id="state">initializing</div>
+  <div class="doors">
+    <a class="door" href="/"><svg viewBox="0 0 24 24"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="15" r="3"/><path d="M10.5 10.5 13.5 13.5"/></svg>synapse brain</a>
+    <a class="door" href="/nexus.html"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>lamarca os</a>
+  </div>
+  <div id="bar">
+    <button id="mic" title="talk"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg></button>
+    <input id="q" placeholder="Ask JARVIS, or tap the mic" autocomplete="off">
+  </div>
+</div>
+<div id="license"><div class="licbox">
+  <div class="wlogo"></div>
+  <h2>Activate JARVIS</h2>
+  <p>Enter your license key to power up.</p>
+  <input id="licin" placeholder="LAMARCA-XXXXXX" autocomplete="off" spellcheck="false">
+  <button id="licgo">Activate</button>
+  <div class="licmsg" id="licmsg"></div>
+  <a id="licget" target="_blank" rel="noopener">No key? DM Jonathan Lamarca on Skool to get one.</a>
+  <a class="liccredit" id="liccreditlink" target="_blank" rel="noopener">Created by Jonathan Lamarca</a>
+</div></div>
+<script src="/vendor/three.min.js"></script>
+<script>
+(function(){
+  const $=s=>document.querySelector(s)
+  const canvas=$('#c'), renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false})
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setClearColor(0x03050c,1)
+  const scene=new THREE.Scene(); scene.fog=new THREE.FogExp2(0x03050c,0.045)
+  const cam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,100); cam.position.set(0,0,7)
+  scene.add(new THREE.AmbientLight(0x3a5fa0,0.7))
+  const key=new THREE.PointLight(0x9fd0ff,50,40); key.position.set(5,5,7); scene.add(key)
+
+  // ================= THE ORB =================
+  const orb=new THREE.Group(); scene.add(orb)
+  // layered wireframe shells
+  const shells=[]
+  const mkShell=(r,detail,color,op)=>{ const g=new THREE.IcosahedronGeometry(r,detail)
+    const m=new THREE.LineSegments(new THREE.WireframeGeometry(g),new THREE.LineBasicMaterial({color,transparent:true,opacity:op}))
+    orb.add(m); shells.push(m); return m }
+  mkShell(1.55,2,0x7fb6ff,0.34)
+  mkShell(1.28,1,0x4f8fef,0.22)
+  const outer=mkShell(1.9,1,0x2f5fbf,0.10)
+  // inner spiral core (points on a fibonacci spiral sphere)
+  const CN=900, cg=new THREE.BufferGeometry(), cp=new Float32Array(CN*3)
+  for(let i=0;i<CN;i++){ const t=i/CN, ang=i*2.399963, r=0.95*Math.sqrt(t)
+    const y=(t-0.5)*1.7
+    cp[i*3]=Math.cos(ang)*r; cp[i*3+1]=y; cp[i*3+2]=Math.sin(ang)*r }
+  cg.setAttribute('position',new THREE.BufferAttribute(cp,3))
+  const core=new THREE.Points(cg,new THREE.PointsMaterial({color:0xbfe0ff,size:0.02,transparent:true,opacity:0.85,depthWrite:false,blending:THREE.AdditiveBlending}))
+  orb.add(core)
+  // glow sprite
+  function glowTex(){ const s=256,cv=document.createElement('canvas'); cv.width=cv.height=s; const x=cv.getContext('2d')
+    const g=x.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2); g.addColorStop(0,'rgba(140,190,255,.85)'); g.addColorStop(0.4,'rgba(80,130,255,.25)'); g.addColorStop(1,'rgba(0,0,0,0)')
+    x.fillStyle=g; x.fillRect(0,0,s,s); return new THREE.CanvasTexture(cv) }
+  const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(),color:0x6fa8ff,transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending}))
+  glow.scale.set(7,7,1); orb.add(glow)
+  // scan rings
+  const rings=[]
+  for(let i=0;i<2;i++){ const rg=new THREE.RingGeometry(2.15+i*0.5,2.19+i*0.5,90)
+    const rm=new THREE.Mesh(rg,new THREE.MeshBasicMaterial({color:0x5f9fff,transparent:true,opacity:0.16-i*0.06,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}))
+    rm.rotation.x=Math.PI/2.3+i*0.4; orb.add(rm); rings.push(rm) }
+  // ambient dust
+  const DN=500, dg=new THREE.BufferGeometry(), dp=new Float32Array(DN*3)
+  for(let i=0;i<DN;i++){ dp[i*3]=(Math.random()-.5)*26; dp[i*3+1]=(Math.random()-.5)*16; dp[i*3+2]=(Math.random()-.5)*20 }
+  dg.setAttribute('position',new THREE.BufferAttribute(dp,3))
+  scene.add(new THREE.Points(dg,new THREE.PointsMaterial({color:0x8fc0ff,size:0.022,transparent:true,opacity:0.4,depthWrite:false,blending:THREE.AdditiveBlending})))
+
+  // ================= STATES =================
+  // idle: slow breath · listening: fast waves · thinking: spin-up · speaking: voice pulse
+  let mode='idle', energy=0.35, tEnergy=0.35, spin=0.12, tSpin=0.12, amp=0
+  const stateEl=$('#state')
+  function setMode(m,label){ mode=m; stateEl.textContent=label||m
+    if(m==='idle'){ tEnergy=0.35; tSpin=0.12 }
+    if(m==='listening'){ tEnergy=0.8; tSpin=0.35 }
+    if(m==='thinking'){ tEnergy=1.0; tSpin=1.6 }
+    if(m==='speaking'){ tEnergy=0.85; tSpin=0.3 } }
+
+  // drag to spin
+  let drag=false,lx=0,vx=0
+  addEventListener('pointerdown',e=>{drag=true;lx=e.clientX})
+  addEventListener('pointermove',e=>{ if(drag){ vx+=(e.clientX-lx)*0.004; lx=e.clientX } })
+  addEventListener('pointerup',()=>drag=false)
+
+  let t=0,last=performance.now()
+  function frame(now){ requestAnimationFrame(frame)
+    const dt=Math.min(0.05,(now-last)/1000); last=now; t+=dt
+    energy+=(tEnergy-energy)*0.06; spin+=(tSpin-spin)*0.05; vx*=0.95
+    const talk=(mode==='speaking')?(0.5+0.5*Math.sin(t*14))*0.12:0
+    const breathe=1+Math.sin(t*1.6)*0.025*(0.5+energy)+talk
+    orb.scale.setScalar(breathe)
+    orb.rotation.y+=dt*spin+vx*dt*8; orb.rotation.x=Math.sin(t*0.3)*0.12
+    shells[0].rotation.y+=dt*0.1; shells[1].rotation.y-=dt*0.16; outer.rotation.x+=dt*0.05
+    core.rotation.y-=dt*(0.2+spin*0.4)
+    glow.material.opacity=0.35+energy*0.4+talk
+    rings.forEach((r,i)=>{ r.rotation.z+=dt*(0.2+i*0.15); r.material.opacity=(0.10+energy*0.12)*(1-i*0.35) })
+    cam.position.x=Math.sin(t*0.15)*0.4; cam.lookAt(0,0,0)
+    renderer.render(scene,cam)
+  }
+  function resize(){ cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight) }
+  addEventListener('resize',resize); resize(); requestAnimationFrame(frame)
+  setTimeout(()=>setMode('idle','online · say something'),1400)
+
+  // ================= VOICE + AI =================
+  const resp=$('#resp'), q=$('#q'), mic=$('#mic'), bar=$('#bar')
+  let speaking=false, busy=false
+  function say(text){ try{ speechSynthesis.cancel()
+    const u=new SpeechSynthesisUtterance(text.slice(0,600)); u.rate=1.03
+    const vs=speechSynthesis.getVoices(); const v=vs.find(v=>/en-GB/i.test(v.lang))||vs.find(v=>/en/i.test(v.lang)); if(v)u.voice=v
+    u.onstart=()=>{speaking=true; setMode('speaking','speaking')}
+    u.onend=()=>{speaking=false; setMode('idle','online')}
+    speechSynthesis.speak(u) }catch(e){} }
+  async function ask(text){ text=(text||'').trim(); if(!text||busy)return; busy=true; q.value=''
+    if(speaking){speechSynthesis.cancel();speaking=false}
+    setMode('thinking','thinking'); resp.classList.add('on'); resp.innerHTML='<span style="opacity:.5">…</span>'
+    try{ const uk=(localStorage.getItem('synapse_userkey')||'').trim()
+      const r=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q:text,lang:'en',key:uk})})
+      const d=await r.json(); const ans=(d.answer||'').replace(/\s+/g,' ').trim()
+      resp.textContent=ans; say(d.spoken||ans)
+    }catch(e){ resp.textContent='I could not reach the brain.'; setMode('idle','online') }
+    busy=false }
+  q.addEventListener('keydown',e=>{ if(e.key==='Enter') ask(q.value) })
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition
+  let rec=null
+  if(mic) mic.addEventListener('click',()=>{ if(!SR){ q.focus(); return }
+    if(rec){ try{rec.stop()}catch(e){}; rec=null; mic.classList.remove('rec'); bar.classList.remove('live'); setMode('idle','online'); return }
+    rec=new SR(); rec.lang='en-US'; rec.interimResults=false
+    rec.onresult=e=>{ const s=e.results[0][0].transcript; ask(s) }
+    rec.onend=()=>{ mic.classList.remove('rec'); bar.classList.remove('live'); rec=null }
+    mic.classList.add('rec'); bar.classList.add('live'); setMode('listening','listening'); rec.start() })
+})();
+</script>
+<script src="/license.js"></script>
+</html>

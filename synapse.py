@@ -720,6 +720,7 @@ def make_handler():
             if path in ("/", "/index.html"): return self._file("index.html")
             if path in ("/3d.html", "/brain3d.html"): return self._file("brain3d.html")
             if path in ("/nexus", "/nexus.html"): return self._file("nexus.html")
+            if path in ("/jarvis", "/jarvis.html"): return self._file("jarvis.html")
             if path in ("/synapse.py", "/dist/synapse.py"):   # served so installed copies can self-update the core
                 try: return self._send(200, open(os.path.abspath(__file__), "r", encoding="utf-8").read(), "text/plain")
                 except Exception: return self._send(404, b"missing")
@@ -1007,8 +1008,8 @@ def main():
             break
         except OSError:
             port += 1
-    url = f"http://localhost:{port}/"
-    print(f"  open     : {url}   (3D at {url}3d.html)")
+    url = f"http://localhost:{port}/jarvis"   # ignition screen: the JARVIS orb, doors to Brain + LAMARCA OS
+    print(f"  open     : {url}   (brain at http://localhost:{port}/ · 3D at /3d.html · os at /nexus.html)")
     if do_open:
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
     try:

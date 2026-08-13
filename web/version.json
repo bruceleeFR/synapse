@@ -2,6 +2,7 @@
   "version": "1.2.0",
   "base": "https://synapse.jonathanlamarca.fr",
   "files": [
+    "jarvis.html",
     "index.html",
     "app.js",
     "i18n.js",
