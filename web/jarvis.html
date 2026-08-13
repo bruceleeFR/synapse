@@ -4,11 +4,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- Orb concept inspired by the MIT-licensed "Ultron" orb by Sagar Tamang (github.com/SAGAR-TAMANG). Implementation is original. -->
 <style>
-  :root{--ink:#dbe9ff;--dim:#5f7699;--a:#7fb6ff;--a2:#bfe0ff;--line:rgba(120,170,255,.16)}
+  :root{--ink:#ffe9d3;--dim:#8a7460;--a:#ff9a3c;--a2:#ffd9a0;--line:rgba(255,154,60,.18)}
   *{margin:0;box-sizing:border-box}
   html,body{height:100%;overflow:hidden;background:#03050c;color:var(--ink);font-family:'DejaVu Sans Mono',monospace}
   canvas{display:block;position:fixed;inset:0}
-  .br{position:fixed;z-index:4;width:26px;height:26px;border:2px solid rgba(91,139,255,.3);pointer-events:none}
+  .br{position:fixed;z-index:4;width:26px;height:26px;border:2px solid rgba(255,154,60,.32);pointer-events:none}
   .tl{top:12px;left:12px;border-right:0;border-bottom:0}.tr{top:12px;right:12px;border-left:0;border-bottom:0}
   .bl{bottom:12px;left:12px;border-right:0;border-top:0}.brr{bottom:12px;right:12px;border-left:0;border-top:0}
   #hud{position:fixed;z-index:5;inset:0;pointer-events:none}
@@ -16,22 +16,22 @@
   .brand b{font-size:15px;letter-spacing:.5em;color:#eaf3ff;font-weight:700}
   .brand span{display:block;margin-top:5px;font-size:9px;letter-spacing:.3em;color:var(--dim);text-transform:uppercase}
   #state{position:absolute;top:50%;left:50%;transform:translate(-50%,150px);font-size:10px;letter-spacing:.34em;color:var(--a2);text-transform:uppercase;transition:.3s}
-  #resp{position:absolute;left:50%;top:12%;transform:translateX(-50%);width:min(680px,88vw);text-align:center;font-family:'DejaVu Sans',sans-serif;font-size:16.5px;line-height:1.55;color:#eaf3ff;text-shadow:0 0 18px rgba(120,180,255,.5);opacity:0;transition:opacity .4s}
+  #resp{position:absolute;left:50%;top:12%;transform:translateX(-50%);width:min(680px,88vw);text-align:center;font-family:'DejaVu Sans',sans-serif;font-size:16.5px;line-height:1.55;color:#eaf3ff;text-shadow:0 0 18px rgba(255,160,70,.5);opacity:0;transition:opacity .4s}
   #resp.on{opacity:1}
   .doors{position:absolute;left:50%;bottom:104px;transform:translateX(-50%);display:flex;gap:12px;pointer-events:auto}
-  .door{display:flex;align-items:center;gap:9px;padding:10px 18px;border:1px solid var(--line);border-radius:24px;background:rgba(8,15,32,.55);backdrop-filter:blur(12px);color:var(--a2);text-decoration:none;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;transition:.2s}
-  .door:hover{border-color:var(--a);color:#fff;box-shadow:0 0 24px rgba(90,150,255,.25)}
+  .door{display:flex;align-items:center;gap:9px;padding:10px 18px;border:1px solid var(--line);border-radius:24px;background:rgba(26,16,8,.55);backdrop-filter:blur(12px);color:var(--a2);text-decoration:none;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;transition:.2s}
+  .door:hover{border-color:var(--a);color:#fff;box-shadow:0 0 24px rgba(255,140,40,.3)}
   .door svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.7}
-  #bar{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;width:min(520px,92vw);padding:8px;border:1px solid var(--line);border-radius:40px;background:rgba(8,15,32,.55);backdrop-filter:blur(12px);pointer-events:auto;transition:.3s}
-  #bar.live{border-color:var(--a);box-shadow:0 0 30px rgba(90,150,255,.3)}
-  #mic{flex:0 0 40px;width:40px;height:40px;border-radius:50%;border:0;cursor:pointer;background:linear-gradient(160deg,#2a4d8f,#12213f);display:flex;align-items:center;justify-content:center}
-  #mic svg{width:17px;height:17px;stroke:#cfe4ff;fill:none;stroke-width:1.8}
+  #bar{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;width:min(520px,92vw);padding:8px;border:1px solid var(--line);border-radius:40px;background:rgba(26,16,8,.55);backdrop-filter:blur(12px);pointer-events:auto;transition:.3s}
+  #bar.live{border-color:var(--a);box-shadow:0 0 30px rgba(255,140,40,.35)}
+  #mic{flex:0 0 40px;width:40px;height:40px;border-radius:50%;border:0;cursor:pointer;background:linear-gradient(160deg,#8f5a1a,#3f2410);display:flex;align-items:center;justify-content:center}
+  #mic svg{width:17px;height:17px;stroke:#ffe0bd;fill:none;stroke-width:1.8}
   #mic.rec{background:linear-gradient(160deg,#8f2a2a,#3f1212);box-shadow:0 0 18px rgba(255,90,90,.5)}
   #q{flex:1;background:transparent;border:0;outline:none;color:var(--ink);font:inherit;font-size:13px;letter-spacing:.02em}
   #q::placeholder{color:#44587c}
   #hand{flex:0 0 36px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);cursor:pointer;background:transparent;display:flex;align-items:center;justify-content:center;transition:.2s}
-  #hand svg{width:16px;height:16px;stroke:#8fb0dd;fill:none;stroke-width:1.7}
-  #hand.live{border-color:var(--a);box-shadow:0 0 14px rgba(90,150,255,.5)}
+  #hand svg{width:16px;height:16px;stroke:#e0b585;fill:none;stroke-width:1.7}
+  #hand.live{border-color:var(--a);box-shadow:0 0 14px rgba(255,140,40,.5)}
   #camj{position:fixed;z-index:6;right:22px;bottom:104px;width:200px;height:150px;border:1px solid var(--a);border-radius:10px;overflow:hidden;opacity:0;transform:scale(.9);transition:opacity .3s,transform .3s,border-color .3s,box-shadow .3s;pointer-events:none;background:#04070f}
   #camj.on{opacity:.94;transform:scale(1)}
   #camj.det{border-color:#5effc0;box-shadow:0 0 22px rgba(60,255,180,.35)}
@@ -41,10 +41,10 @@
   #camj .hc{position:absolute;top:6px;right:8px;font-size:8px;letter-spacing:.14em;color:#7dffc4;text-transform:uppercase;z-index:2}
   @media (max-width:760px){ #camj{width:130px;height:98px;bottom:96px;right:10px} }
   @media (max-width:760px){ .doors{bottom:96px;gap:8px} .door{padding:9px 13px;font-size:9.5px} }
-  #license{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:20px;background:radial-gradient(800px 600px at 50% 40%,rgba(20,40,90,.6),rgba(3,5,12,.98));backdrop-filter:blur(10px)}
+  #license{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:20px;background:radial-gradient(800px 600px at 50% 40%,rgba(90,45,15,.55),rgba(3,5,12,.98));backdrop-filter:blur(10px)}
   #license.open{display:flex}
   .licbox{width:min(420px,94vw);text-align:center;background:rgba(9,14,26,.97);border:1px solid var(--line);border-radius:20px;padding:34px 30px;font-family:'DejaVu Sans',sans-serif}
-  .licbox .wlogo{width:46px;height:46px;border-radius:12px;margin:0 auto 16px;background:conic-gradient(from 0deg,var(--a),var(--a2),var(--a));box-shadow:0 0 24px rgba(91,139,255,.6);position:relative}
+  .licbox .wlogo{width:46px;height:46px;border-radius:12px;margin:0 auto 16px;background:conic-gradient(from 0deg,var(--a),var(--a2),var(--a));box-shadow:0 0 24px rgba(255,140,40,.6);position:relative}
   .licbox .wlogo::after{content:"";position:absolute;inset:8px;border-radius:7px;background:#04070f}
   .licbox h2{font-size:22px;margin-bottom:8px;color:var(--ink)}
   .licbox p{color:var(--dim);font-size:13.5px;margin-bottom:18px}
@@ -90,8 +90,8 @@
   renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setClearColor(0x03050c,1)
   const scene=new THREE.Scene(); scene.fog=new THREE.FogExp2(0x03050c,0.045)
   const cam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,100); cam.position.set(0,0,7)
-  scene.add(new THREE.AmbientLight(0x3a5fa0,0.7))
-  const key=new THREE.PointLight(0x9fd0ff,50,40); key.position.set(5,5,7); scene.add(key)
+  scene.add(new THREE.AmbientLight(0x7a5230,0.7))
+  const key=new THREE.PointLight(0xffc080,50,40); key.position.set(5,5,7); scene.add(key)
 
   // ================= THE ORB =================
   const orb=new THREE.Group(); scene.add(orb)
@@ -100,33 +100,40 @@
   const mkShell=(r,detail,color,op)=>{ const g=new THREE.IcosahedronGeometry(r,detail)
     const m=new THREE.LineSegments(new THREE.WireframeGeometry(g),new THREE.LineBasicMaterial({color,transparent:true,opacity:op}))
     orb.add(m); shells.push(m); return m }
-  mkShell(1.55,2,0x7fb6ff,0.34)
-  mkShell(1.28,1,0x4f8fef,0.22)
-  const outer=mkShell(1.9,1,0x2f5fbf,0.10)
+  mkShell(1.55,2,0xffa04f,0.36)
+  mkShell(1.28,1,0xff7a1a,0.24)
+  const outer=mkShell(1.9,1,0xbf5a1f,0.11)
   // inner spiral core (points on a fibonacci spiral sphere)
   const CN=900, cg=new THREE.BufferGeometry(), cp=new Float32Array(CN*3)
   for(let i=0;i<CN;i++){ const t=i/CN, ang=i*2.399963, r=0.95*Math.sqrt(t)
     const y=(t-0.5)*1.7
     cp[i*3]=Math.cos(ang)*r; cp[i*3+1]=y; cp[i*3+2]=Math.sin(ang)*r }
   cg.setAttribute('position',new THREE.BufferAttribute(cp,3))
-  const core=new THREE.Points(cg,new THREE.PointsMaterial({color:0xbfe0ff,size:0.02,transparent:true,opacity:0.85,depthWrite:false,blending:THREE.AdditiveBlending}))
+  const core=new THREE.Points(cg,new THREE.PointsMaterial({color:0xffd9a0,size:0.02,transparent:true,opacity:0.85,depthWrite:false,blending:THREE.AdditiveBlending}))
   orb.add(core)
   // glow sprite
   function glowTex(){ const s=256,cv=document.createElement('canvas'); cv.width=cv.height=s; const x=cv.getContext('2d')
-    const g=x.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2); g.addColorStop(0,'rgba(140,190,255,.85)'); g.addColorStop(0.4,'rgba(80,130,255,.25)'); g.addColorStop(1,'rgba(0,0,0,0)')
+    const g=x.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2); g.addColorStop(0,'rgba(255,190,120,.9)'); g.addColorStop(0.4,'rgba(255,130,40,.28)'); g.addColorStop(1,'rgba(0,0,0,0)')
     x.fillStyle=g; x.fillRect(0,0,s,s); return new THREE.CanvasTexture(cv) }
-  const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(),color:0x6fa8ff,transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending}))
+  const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(),color:0xff8a3a,transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending}))
   glow.scale.set(7,7,1); orb.add(glow)
   // scan rings
   const rings=[]
   for(let i=0;i<2;i++){ const rg=new THREE.RingGeometry(2.15+i*0.5,2.19+i*0.5,90)
-    const rm=new THREE.Mesh(rg,new THREE.MeshBasicMaterial({color:0x5f9fff,transparent:true,opacity:0.16-i*0.06,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}))
+    const rm=new THREE.Mesh(rg,new THREE.MeshBasicMaterial({color:0xff9a4f,transparent:true,opacity:0.18-i*0.06,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}))
     rm.rotation.x=Math.PI/2.3+i*0.4; orb.add(rm); rings.push(rm) }
+  // sweeping bright arc on the equator (the "scanner")
+  const arc=new THREE.Mesh(new THREE.RingGeometry(2.02,2.09,64,1,0,Math.PI/2.2),
+    new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:0.85,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}))
+  arc.rotation.x=Math.PI/2.3; orb.add(arc)
+  // warm glow pooling on the floor under the orb
+  const floorGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(),color:0xff7a1a,transparent:true,opacity:0.22,depthWrite:false,blending:THREE.AdditiveBlending}))
+  floorGlow.scale.set(9,2.4,1); floorGlow.position.y=-2.6; scene.add(floorGlow)
   // ambient dust
   const DN=500, dg=new THREE.BufferGeometry(), dp=new Float32Array(DN*3)
   for(let i=0;i<DN;i++){ dp[i*3]=(Math.random()-.5)*26; dp[i*3+1]=(Math.random()-.5)*16; dp[i*3+2]=(Math.random()-.5)*20 }
   dg.setAttribute('position',new THREE.BufferAttribute(dp,3))
-  scene.add(new THREE.Points(dg,new THREE.PointsMaterial({color:0x8fc0ff,size:0.022,transparent:true,opacity:0.4,depthWrite:false,blending:THREE.AdditiveBlending})))
+  scene.add(new THREE.Points(dg,new THREE.PointsMaterial({color:0xffb877,size:0.022,transparent:true,opacity:0.4,depthWrite:false,blending:THREE.AdditiveBlending})))
 
   // ================= STATES =================
   // idle: slow breath · listening: mic-driven waves · thinking: spin-up · speaking: word-pulse
@@ -158,6 +165,8 @@
     core.rotation.y-=dt*(0.2+spin*0.4+live*0.8)
     glow.material.opacity=0.35+energy*0.4+live*0.5
     rings.forEach((r,i)=>{ r.rotation.z+=dt*(0.2+i*0.15); r.material.opacity=(0.10+energy*0.12+live*0.1)*(1-i*0.35) })
+    arc.rotation.z-=dt*(0.9+energy*2.2+live*2.5); arc.material.opacity=0.5+energy*0.35+live*0.4
+    floorGlow.material.opacity=0.16+energy*0.14+live*0.2
     cam.position.x=Math.sin(t*0.15)*0.4; cam.lookAt(0,0,0)
     renderer.render(scene,cam)
   }
@@ -176,11 +185,11 @@
     // update available -> the orb turns amber and offers one tap
     try{ const c=await (await fetch('/config.json')).json()
       if(c&&c.update&&!c.demo){
-        shells.forEach(s=>s.material.color.setHex(0xffb060)); glow.material.color.setHex(0xff9a3a)
-        rings.forEach(r=>r.material.color.setHex(0xffa050))
+        shells.forEach(s=>s.material.color.setHex(0x5effc0)); glow.material.color.setHex(0x3adf9a)
+        rings.forEach(r=>r.material.color.setHex(0x5effc0))
         const pill=document.createElement('button')
         pill.textContent='Update to v'+c.update
-        pill.style.cssText='position:fixed;z-index:8;top:70px;left:50%;transform:translateX(-50%);padding:8px 16px;border:1px solid #ffb060;border-radius:20px;background:rgba(30,18,6,.7);color:#ffd9ad;font:inherit;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;pointer-events:auto'
+        pill.style.cssText='position:fixed;z-index:8;top:70px;left:50%;transform:translateX(-50%);padding:8px 16px;border:1px solid #5effc0;border-radius:20px;background:rgba(6,26,18,.75);color:#bdffe2;font:inherit;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;pointer-events:auto'
         pill.onclick=async()=>{ pill.disabled=true; pill.textContent='Updating…'
           try{ const r=await (await fetch('/api/update',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json()
             pill.textContent=r.ok?(r.restart?'Updated · restart the app':'Updated · reloading…'):'Update failed'
