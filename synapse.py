@@ -113,7 +113,7 @@ def scan(vault):
         "nodes": notes, "edges": edges,
     }
 
-SAVE_FIELDS = ("name", "accent", "accent2", "logo", "persona", "humor", "model", "provider", "voice", "ai_key", "openrouter_key")
+SAVE_FIELDS = ("name", "accent", "accent2", "logo", "persona", "humor", "model", "provider", "voice", "ai_key", "openrouter_key", "ollama_model", "ollama_url", "ics_urls", "imap_host", "imap_user", "imap_pass", "imap_folder", "wol_devices")
 
 def save_config(vault, cfg):
     data = {k: cfg.get(k) for k in SAVE_FIELDS if cfg.get(k) not in (None, "")}
@@ -199,6 +199,17 @@ def web_search(query, n=5):
 
 def llm(cfg, model, messages, key_override=""):
     model = model or cfg.get("model") or "gpt-4o-mini"
+    # Ollama: a fully local, fully offline brain. No key, no cloud.
+    # Use model "ollama/<name>" or set "ollama_model": "<name>" in config.json.
+    if model.startswith("ollama/") or (cfg.get("ollama_model") and not cfg.get("ai_key") and not key_override):
+        name = model.split("/", 1)[1] if model.startswith("ollama/") else cfg.get("ollama_model")
+        try:
+            body = json.dumps({"model": name, "messages": messages, "stream": False}).encode()
+            req = urllib.request.Request((cfg.get("ollama_url") or "http://localhost:11434") + "/api/chat",
+                                         data=body, headers={"Content-Type": "application/json"})
+            return json.loads(urllib.request.urlopen(req, timeout=180).read())["message"]["content"]
+        except Exception as e:
+            return "JARVIS could not reach Ollama (" + str(e)[:80] + "). Is it running? Try: ollama run " + str(name)
     # OpenRouter when model has a "/" (vendor/model) and a key exists
     if "/" in model and (cfg.get("openrouter_key") or key_override):
         k = key_override or cfg["openrouter_key"]
@@ -265,6 +276,86 @@ PERSONAS = {"pirate": "a swashbuckling pirate who still answers accurately",
             "butler": "JARVIS, a calm, precise British butler assistant",
             "coach": "an upbeat motivational coach"}
 
+# ---------------------------------------------------------------- jarvis tools
+# Optional integrations in the spirit of open voice assistants (hat tip to the
+# MIT licensed jarvis-assistant-vocal by sosoj92 for the feature map). All pure
+# stdlib so the double-click promise holds: each tool lights up when configured.
+
+def ics_events(cfg, hours=24):
+    """Today's agenda from any iCal subscription URLs in config: "ics_urls": [...]"""
+    urls = cfg.get("ics_urls") or []
+    out = []
+    import datetime
+    now = datetime.datetime.now()
+    horizon = now + datetime.timedelta(hours=hours)
+    for u in urls[:5]:
+        try:
+            raw = _get(u.replace("webcal://", "https://"), timeout=10).decode("utf-8", "ignore")
+        except Exception:
+            continue
+        for block in raw.split("BEGIN:VEVENT")[1:]:
+            m = re.search(r"DTSTART[^:]*:(\d{8})(?:T(\d{4}))?", block)
+            s = re.search(r"SUMMARY[^:]*:(.+)", block)
+            if not m or not s:
+                continue
+            try:
+                dt = datetime.datetime.strptime(m.group(1) + (m.group(2) or "0000"), "%Y%m%d%H%M")
+            except Exception:
+                continue
+            if now - datetime.timedelta(hours=1) <= dt <= horizon:
+                out.append((dt, s.group(1).strip()[:80]))
+    out.sort()
+    return out[:8]
+
+def imap_summary(cfg):
+    """Unread mail digest. Config: imap_host, imap_user, imap_pass (an app password)."""
+    host, user, pw = cfg.get("imap_host"), cfg.get("imap_user"), cfg.get("imap_pass")
+    if not (host and user and pw):
+        return None
+    import imaplib, email as em
+    try:
+        M = imaplib.IMAP4_SSL(host, 993)
+        M.login(user, pw); M.select(cfg.get("imap_folder") or "INBOX", readonly=True)
+        _, data = M.search(None, "UNSEEN")
+        ids = (data[0] or b"").split()
+        subs = []
+        for i in ids[-6:][::-1]:
+            _, msg = M.fetch(i, "(BODY.PEEK[HEADER.FIELDS (FROM SUBJECT)])")
+            hdr = em.message_from_bytes(msg[0][1])
+            frm = re.sub(r"<.*?>", "", str(hdr.get("From", ""))).strip()[:30]
+            subs.append(f"{frm}: {str(hdr.get('Subject',''))[:60]}")
+        M.logout()
+        return {"unread": len(ids), "latest": subs}
+    except Exception as e:
+        return {"error": str(e)[:100]}
+
+def wake_on_lan(mac):
+    """Send the magic packet. Config: "wol_devices": {"studio pc": "AA:BB:CC:DD:EE:FF"}"""
+    import socket
+    raw = bytes.fromhex(mac.replace(":", "").replace("-", ""))
+    pkt = b"\xff" * 6 + raw * 16
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    s.sendto(pkt, ("255.255.255.255", 9)); s.close()
+
+def machine_stats():
+    import shutil as sh
+    du = sh.disk_usage("/")
+    parts = [f"disk {du.used*100//du.total}% used"]
+    try:
+        parts.insert(0, "load %.1f" % os.getloadavg()[0])
+    except Exception:
+        pass
+    try:
+        with open("/proc/meminfo") as f:
+            mi = f.read()
+        tot = int(re.search(r"MemTotal:\s+(\d+)", mi).group(1))
+        av = int(re.search(r"MemAvailable:\s+(\d+)", mi).group(1))
+        parts.insert(1, f"memory {100-av*100//tot}% used")
+    except Exception:
+        pass
+    return f"{os.cpu_count()} cores, " + ", ".join(parts)
+
 def command_intent(q, cfg, graph, vault):
     """Instant voice/text commands: tune JARVIS, drive the app, set reminders, list tasks. No LLM."""
     ql = (q or "").lower().strip()
@@ -312,6 +403,42 @@ def command_intent(q, cfg, graph, vault):
         return ack("Dark mode.", None, {"type": "theme", "mode": "dark"})
     if re.search(r"\b(light mode|lights on|go light)\b", ql):
         return ack("Light mode.", None, {"type": "theme", "mode": "light"})
+    # ---- calendar (iCal subscriptions)
+    if re.search(r"\b(my )?(calendar|agenda|schedule)\b|what.?s (on )?(today|tomorrow)\b", ql):
+        if not cfg.get("ics_urls"):
+            return ack("No calendar connected yet. Add your iCal links to config.json as \"ics_urls\": [\"...\"] and ask again.")
+        evs = ics_events(cfg, 36)
+        if not evs:
+            return ack("Your calendar is clear for the next day and a half.", "Your calendar is clear.")
+        lines = "  ·  ".join(f"{d.strftime('%H:%M')} {t}" for d, t in evs)
+        return ack("Coming up: " + lines, f"You have {len(evs)} events coming up. First: {evs[0][1]} at {evs[0][0].strftime('%H:%M')}.")
+    # ---- email (IMAP digest)
+    if re.search(r"\b(check |any |read )?(my )?(e-?mails?|inbox)\b", ql) and re.search(r"mail|inbox", ql):
+        s = imap_summary(cfg)
+        if s is None:
+            return ack("No mailbox connected yet. Add imap_host, imap_user and an app password as imap_pass in config.json.")
+        if s.get("error"):
+            return ack("I could not open the mailbox: " + s["error"])
+        if not s["unread"]:
+            return ack("Inbox at zero. Nothing unread.")
+        return ack(f"{s['unread']} unread. Latest: " + "  ·  ".join(s["latest"]),
+                   f"You have {s['unread']} unread emails. Latest from {s['latest'][0].split(':')[0]}.")
+    # ---- wake-on-lan
+    m = re.search(r"\b(?:wake|power on|turn on)\s+(?:up\s+)?(?:the\s+)?([\w -]{2,24}?)(?:\s+(?:pc|computer|machine))?$", ql)
+    if m and cfg.get("wol_devices"):
+        name = m.group(1).strip()
+        for dev, mac in (cfg.get("wol_devices") or {}).items():
+            if name in dev.lower() or dev.lower() in name:
+                try:
+                    wake_on_lan(mac)
+                    return ack(f"Magic packet sent to {dev}. It should be waking up.")
+                except Exception as e:
+                    return ack(f"Could not wake {dev}: {str(e)[:80]}")
+    # ---- machine status (never on the public demo, it would expose the host)
+    if re.search(r"\b(system|machine|pc) (status|stats|health)\b|how is (the|my) (machine|pc|system)", ql):
+        if cfg.get("demo"):
+            return ack("Machine status is available on your own install, not on the shared demo.")
+        return ack("Machine: " + machine_stats())
     # ---- reminders
     m = re.search(r"remind me (?:to |that )?(.+?) in (\d+) ?(hours?|hrs?|h|minutes?|mins?|m)\b", ql)
     if m:
@@ -364,7 +491,7 @@ def jarvis_answer(graph, vault, question, cfg, model="", lang="", key_override="
         return {"answer": ans, "spoken": ans, "sources": [], "focus": [], "card": {"kind": "web", "title": "What I found", "items": results}}
     # default: RAG over notes
     hits = retrieve(graph, vault, q)
-    key = key_override or cfg.get("ai_key") or cfg.get("openrouter_key") or env_key()
+    key = key_override or cfg.get("ai_key") or cfg.get("openrouter_key") or env_key() or cfg.get("ollama_model")
     if not key:
         if hits:
             top = hits[0]
@@ -613,6 +740,24 @@ def os_command(cfg, q):
     def ack(a, spoken=None, **extra):
         d = {"answer": a, "spoken": spoken or a, "sources": [], "focus": []}; d.update(extra); return d
 
+    # ---- scheduled shutdown, with a voice cancel
+    if re.search(r"\b(?:shut ?down|power off|turn off)\b.*\b(pc|computer|machine|the system)\b", ql):
+        m = re.search(r"\bin (\d+) ?min", ql)
+        mins = int(m.group(1)) if m else 1
+        def _off():
+            State.pending_off = None
+            if sysn == "Windows": _run("shutdown /s /t 5")
+            elif sysn == "Darwin": _run("osascript -e 'tell app \"System Events\" to shut down'")
+            else: _run("systemctl poweroff || shutdown -h now")
+        t = threading.Timer(mins * 60, _off); t.daemon = True; t.start()
+        State.pending_off = t
+        return ack(f"Shutting down in {mins} minute{'s' if mins>1 else ''}. Say cancel the shutdown to stop it.",
+                   f"Shutting down in {mins} minutes. Say cancel to stop me.")
+    if re.search(r"\bcancel (?:the )?(shut ?down|power ?off)\b", ql):
+        t = getattr(State, "pending_off", None)
+        if t: t.cancel(); State.pending_off = None; return ack("Shutdown cancelled. We stay online.")
+        return ack("No shutdown was pending.")
+
     m = re.search(r"(?:set )?volume (?:to |at )?(\d{1,3})", ql)
     if m:
         v = max(0, min(100, int(m.group(1))))
@@ -829,7 +974,10 @@ def make_handler():
                     State.graph = scan(State.vault)
                 return self._send(200, json.dumps({"ok": ok, "count": State.graph["meta"]["count"], "edges": State.graph["meta"]["edges"]}))
             if path == "/api/set":  # runtime tweaks + connect a key (persisted to config.json)
-                for k in ("persona", "humor", "model", "voice", "provider", "name", "accent", "accent2", "ai_key", "openrouter_key"):
+                if State.config.get("demo"):
+                    for k in ("ai_key", "openrouter_key", "ollama_model", "ollama_url"):
+                        data.pop(k, None)
+                for k in ("persona", "humor", "model", "voice", "provider", "name", "accent", "accent2", "ai_key", "openrouter_key", "ollama_model", "ollama_url"):
                     if k in data and data[k] != "":
                         State.config[k] = data[k]
                 saved = save_config(State.vault, State.config)
@@ -862,7 +1010,7 @@ def gen_key():
     return "LAMARCA-" + p + AL[s % len(AL)]
 
 # ---- license (required to launch outside --demo) ----
-VERSION = "1.2.0"
+VERSION = "1.2.4"
 LICENSE_PATH = os.path.join(os.path.expanduser("~"), ".synapse_license")
 UPDATE_BASE = "https://synapse.jonathanlamarca.fr"
 

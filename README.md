@@ -109,6 +109,22 @@ The graph and every effect work with no key. To let JARVIS answer, open **Tune J
 
 The key is stored locally in your vault `config.json` and never leaves your machine. Only the notes relevant to your question are sent, and only when you ask.
 
+**Fully offline brain.** No key at all? Run [Ollama](https://ollama.com) and add `"ollama_model": "llama3.2"` to your `config.json` (or ask for model `ollama/llama3.2`). JARVIS then thinks entirely on your machine: no cloud, no key, no data leaving.
+
+## JARVIS tools
+
+Each tool lights up when you configure it in `config.json`, and stays silent otherwise. Pure standard library, nothing to install. (Feature map inspired by the MIT licensed [jarvis-assistant-vocal](https://github.com/sosoj92/jarvis-assistant-vocal); the implementation is SYNAPSE's own.)
+
+| Say | Tool | Config |
+|---|---|---|
+| "what's on my calendar" | Agenda from any iCal links | `"ics_urls": ["https://...ics"]` |
+| "check my email" | Unread digest over IMAP | `"imap_host"`, `"imap_user"`, `"imap_pass"` (app password) |
+| "wake up the studio pc" | Wake on LAN magic packet | `"wol_devices": {"studio pc": "AA:BB:CC:DD:EE:FF"}` |
+| "system status" | Cores, load, memory, disk | nothing |
+| "shut down the pc in 10 min" / "cancel the shutdown" | Scheduled shutdown with voice cancel | `"allow_os": true` |
+| "remind me to X in 20 minutes" | Reminders that land on the orb | nothing |
+| "lights blue" and scenes | Philips Hue | `"hue_bridge"`, `"hue_user"` |
+
 ## White label it
 
 Drop a `config.json` in your notes folder:
