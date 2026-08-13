@@ -29,6 +29,17 @@
   #mic.rec{background:linear-gradient(160deg,#8f2a2a,#3f1212);box-shadow:0 0 18px rgba(255,90,90,.5)}
   #q{flex:1;background:transparent;border:0;outline:none;color:var(--ink);font:inherit;font-size:13px;letter-spacing:.02em}
   #q::placeholder{color:#44587c}
+  #hand{flex:0 0 36px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);cursor:pointer;background:transparent;display:flex;align-items:center;justify-content:center;transition:.2s}
+  #hand svg{width:16px;height:16px;stroke:#8fb0dd;fill:none;stroke-width:1.7}
+  #hand.live{border-color:var(--a);box-shadow:0 0 14px rgba(90,150,255,.5)}
+  #camj{position:fixed;z-index:6;right:22px;bottom:104px;width:200px;height:150px;border:1px solid var(--a);border-radius:10px;overflow:hidden;opacity:0;transform:scale(.9);transition:opacity .3s,transform .3s,border-color .3s,box-shadow .3s;pointer-events:none;background:#04070f}
+  #camj.on{opacity:.94;transform:scale(1)}
+  #camj.det{border-color:#5effc0;box-shadow:0 0 22px rgba(60,255,180,.35)}
+  #camj video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);filter:hue-rotate(180deg) saturate(.6) brightness(.9)}
+  #camj canvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);z-index:1;pointer-events:none}
+  #camj .cl{position:absolute;top:6px;left:8px;font-size:8px;letter-spacing:.2em;color:#8fd0ff;text-transform:uppercase;z-index:2}
+  #camj .hc{position:absolute;top:6px;right:8px;font-size:8px;letter-spacing:.14em;color:#7dffc4;text-transform:uppercase;z-index:2}
+  @media (max-width:760px){ #camj{width:130px;height:98px;bottom:96px;right:10px} }
   @media (max-width:760px){ .doors{bottom:96px;gap:8px} .door{padding:9px 13px;font-size:9.5px} }
   #license{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:20px;background:radial-gradient(800px 600px at 50% 40%,rgba(20,40,90,.6),rgba(3,5,12,.98));backdrop-filter:blur(10px)}
   #license.open{display:flex}
@@ -57,7 +68,9 @@
   <div id="bar">
     <button id="mic" title="talk"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg></button>
     <input id="q" placeholder="Ask JARVIS, or tap the mic" autocomplete="off">
+    <button id="hand" title="hand control"><svg viewBox="0 0 24 24"><path d="M8 13V6a1.5 1.5 0 0 1 3 0v5m0-5.5a1.5 1.5 0 0 1 3 0V11m0-4a1.5 1.5 0 0 1 3 0v6a6 6 0 0 1-6 6h-1a6 6 0 0 1-5.2-3L4 15a1.5 1.5 0 0 1 2.6-1.5L8 15"/></svg></button>
   </div>
+  <div id="camj"><span class="cl">hand cam</span><span class="hc" id="hcj"></span><video id="camvj" playsinline muted></video><canvas id="camcvj"></canvas></div>
 </div>
 <div id="license"><div class="licbox">
   <div class="wlogo"></div>
@@ -186,7 +199,9 @@
     const vs=speechSynthesis.getVoices(); const v=vs.find(v=>/en-GB/i.test(v.lang))||vs.find(v=>/en/i.test(v.lang)); if(v)u.voice=v
     u.onstart=()=>{speaking=true; setMode('speaking','speaking')}
     u.onboundary=()=>{ talkPulse=1 }   // the orb kicks on every spoken word — real rhythm, not a sine
-    u.onend=()=>{speaking=false; setMode('idle','online')}
+    u.onend=()=>{speaking=false
+      if(convo){ setTimeout(()=>{ if(convo&&!speaking&&!busy) listen() },350) }   // conversation: it answers, then listens again
+      else setMode('idle','online')}
     speechSynthesis.speak(u) }catch(e){} }
   // real microphone level while listening (drives the orb)
   let actx=null, ana=null, micStream=null, micRAF=0
@@ -213,14 +228,67 @@
     busy=false }
   q.addEventListener('keydown',e=>{ if(e.key==='Enter') ask(q.value) })
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition
-  let rec=null
-  if(mic) mic.addEventListener('click',()=>{ if(!SR){ q.focus(); return }
-    if(rec){ try{rec.stop()}catch(e){}; rec=null; mic.classList.remove('rec'); bar.classList.remove('live'); setMode('idle','online'); return }
+  let rec=null, convo=false
+  function listen(){ if(!SR||rec) return
     rec=new SR(); rec.lang='en-US'; rec.interimResults=false
     rec.onresult=e=>{ const s=e.results[0][0].transcript; ask(s) }
-    rec.onend=()=>{ mic.classList.remove('rec'); bar.classList.remove('live'); micMeterStop(); rec=null }
-    mic.classList.add('rec'); bar.classList.add('live'); setMode('listening','listening'); micMeterStart(); rec.start() })
+    rec.onend=()=>{ mic.classList.remove('rec'); bar.classList.remove('live'); micMeterStop(); rec=null
+      // conversation keeps the loop alive through silences, unless it is thinking or speaking
+      if(convo&&!busy&&!speaking) setTimeout(()=>{ if(convo&&!rec&&!busy&&!speaking) listen() },400) }
+    mic.classList.add('rec'); bar.classList.add('live'); setMode('listening','conversation · listening'); micMeterStart(); try{rec.start()}catch(e){rec=null} }
+  function stopConvo(){ convo=false; if(rec){try{rec.stop()}catch(e){}; rec=null}
+    if(speaking){try{speechSynthesis.cancel()}catch(e){}; speaking=false}
+    mic.classList.remove('rec'); bar.classList.remove('live'); micMeterStop(); setMode('idle','online') }
+  if(mic) mic.addEventListener('click',()=>{ if(!SR){ q.focus(); return }
+    if(convo||rec){ stopConvo(); return }
+    convo=true; listen() })
+  window.ORB={ talk:()=>{ if(!convo&&!rec){ convo=true; listen() } }, hush:()=>stopConvo(), busy:()=>busy||speaking, isListening:()=>!!rec }
 })();
 </script>
 <script src="/license.js"></script>
+<script>
+/* hand control for the orb — pinch to talk, fist to hush */
+(function(){
+  const handBtn=document.getElementById('hand'), cam=document.getElementById('camj'), video=document.getElementById('camvj')
+  const cv=document.getElementById('camcvj'), cx=cv?cv.getContext('2d'):null, hcount=document.getElementById('hcj')
+  const O=()=>window.ORB
+  let on=false,lm=null,stream=null,raf=0,pinchWas=false,pinchCd=0,fistCd=0
+  const CON=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]]
+  const D=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y)
+  if(handBtn) handBtn.addEventListener('click',toggle)
+  async function toggle(){ if(on){stop();return} handBtn.classList.add('live'); cam.classList.add('on')
+    try{
+      const V=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs')
+      const fs=await V.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm')
+      const MODEL='https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task'
+      const opts=d=>({baseOptions:{modelAssetPath:MODEL,delegate:d},numHands:1,runningMode:'VIDEO',minHandDetectionConfidence:0.4,minHandPresenceConfidence:0.4,minTrackingConfidence:0.4})
+      try{ lm=await V.HandLandmarker.createFromOptions(fs,opts('GPU')) }catch(e){ lm=await V.HandLandmarker.createFromOptions(fs,opts('CPU')) }
+      stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:640},height:{ideal:480},facingMode:'user'}})
+      video.srcObject=stream; await video.play(); on=true; loop()
+    }catch(e){ console.warn('hand:',e&&e.message); stop() }
+  }
+  function stop(){ on=false; cancelAnimationFrame(raf); if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+    handBtn.classList.remove('live'); cam.classList.remove('on'); cam.classList.remove('det'); if(hcount)hcount.textContent=''
+    if(cx&&cv)cx.clearRect(0,0,cv.width,cv.height) }
+  function drawSkel(hands){ if(!cx)return; if(video.videoWidth&&cv.width!==video.videoWidth){cv.width=video.videoWidth;cv.height=video.videoHeight}
+    const W=cv.width,H=cv.height; cx.clearRect(0,0,W,H); cx.lineCap='round'; cx.lineJoin='round'
+    for(const h of hands){ cx.shadowColor='rgba(80,150,255,.9)'; cx.shadowBlur=8; cx.strokeStyle='rgba(125,185,255,.85)'; cx.lineWidth=2.6
+      for(const c of CON){ cx.beginPath(); cx.moveTo(h[c[0]].x*W,h[c[0]].y*H); cx.lineTo(h[c[1]].x*W,h[c[1]].y*H); cx.stroke() }
+      for(let i=0;i<h.length;i++){ const k=(i===4||i===8||i===12||i===16||i===20); cx.fillStyle=k?'#a7e0ff':'#6fb0ff'; cx.shadowBlur=k?11:5; cx.beginPath(); cx.arc(h[i].x*W,h[i].y*H,k?4.3:2.6,0,7); cx.fill() } }
+    cx.shadowBlur=0 }
+  function loop(){ if(!on)return; raf=requestAnimationFrame(loop)
+    let r; try{ r=lm.detectForVideo(video,performance.now()) }catch(e){ return }
+    const o=O(); if(!o)return; const now=performance.now()
+    if(!r||!r.landmarks||!r.landmarks.length){ if(hcount)hcount.textContent='no hand'; cam.classList.remove('det'); if(cx&&cv)cx.clearRect(0,0,cv.width,cv.height); pinchWas=false; return }
+    drawSkel(r.landmarks); cam.classList.add('det'); if(hcount)hcount.textContent='1 hand'
+    const h=r.landmarks[0], wrist=h[0], mid=h[9], size=D(wrist,mid)||0.1
+    const pinch=D(h[4],h[8])/size, ext=[8,12,16,20].map(i=>D(h[i],wrist)/size)
+    const fist=ext.every(f=>f<1.02)
+    const p=pinch<0.5
+    if(p&&!pinchWas&&now>pinchCd){ o.talk(); pinchCd=now+900 }   // pinch = start the conversation
+    pinchWas=p
+    if(fist&&now>fistCd){ o.hush(); fistCd=now+900 }            // fist = silence, stop the loop
+  }
+})();
+</script>
 </html>
