@@ -116,8 +116,9 @@
   scene.add(new THREE.Points(dg,new THREE.PointsMaterial({color:0x8fc0ff,size:0.022,transparent:true,opacity:0.4,depthWrite:false,blending:THREE.AdditiveBlending})))
 
   // ================= STATES =================
-  // idle: slow breath · listening: fast waves · thinking: spin-up · speaking: voice pulse
-  let mode='idle', energy=0.35, tEnergy=0.35, spin=0.12, tSpin=0.12, amp=0
+  // idle: slow breath · listening: mic-driven waves · thinking: spin-up · speaking: word-pulse
+  let mode='idle', energy=0.35, tEnergy=0.35, spin=0.12, tSpin=0.12
+  let micAmp=0, talkPulse=0   // real signal: microphone level + spoken word pulses
   const stateEl=$('#state')
   function setMode(m,label){ mode=m; stateEl.textContent=label||m
     if(m==='idle'){ tEnergy=0.35; tSpin=0.12 }
@@ -135,20 +136,47 @@
   function frame(now){ requestAnimationFrame(frame)
     const dt=Math.min(0.05,(now-last)/1000); last=now; t+=dt
     energy+=(tEnergy-energy)*0.06; spin+=(tSpin-spin)*0.05; vx*=0.95
-    const talk=(mode==='speaking')?(0.5+0.5*Math.sin(t*14))*0.12:0
-    const breathe=1+Math.sin(t*1.6)*0.025*(0.5+energy)+talk
+    talkPulse*=0.90   // word pulses decay fast, so speech reads as rhythm, not a sine
+    const live=(mode==='listening')?micAmp*0.5:(mode==='speaking')?talkPulse:0
+    const breathe=1+Math.sin(t*1.6)*0.025*(0.5+energy)+live*0.18
     orb.scale.setScalar(breathe)
     orb.rotation.y+=dt*spin+vx*dt*8; orb.rotation.x=Math.sin(t*0.3)*0.12
     shells[0].rotation.y+=dt*0.1; shells[1].rotation.y-=dt*0.16; outer.rotation.x+=dt*0.05
-    core.rotation.y-=dt*(0.2+spin*0.4)
-    glow.material.opacity=0.35+energy*0.4+talk
-    rings.forEach((r,i)=>{ r.rotation.z+=dt*(0.2+i*0.15); r.material.opacity=(0.10+energy*0.12)*(1-i*0.35) })
+    core.rotation.y-=dt*(0.2+spin*0.4+live*0.8)
+    glow.material.opacity=0.35+energy*0.4+live*0.5
+    rings.forEach((r,i)=>{ r.rotation.z+=dt*(0.2+i*0.15); r.material.opacity=(0.10+energy*0.12+live*0.1)*(1-i*0.35) })
     cam.position.x=Math.sin(t*0.15)*0.4; cam.lookAt(0,0,0)
     renderer.render(scene,cam)
   }
   function resize(){ cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight) }
   addEventListener('resize',resize); resize(); requestAnimationFrame(frame)
   setTimeout(()=>setMode('idle','online · say something'),1400)
+
+  // ================= IGNITION BRIEFING + UPDATE NOTICE =================
+  setTimeout(async()=>{
+    // daily briefing from the brain, spoken when the browser allows it
+    try{ const d=await (await fetch('/api/today')).json()
+      if(d&&d.answer){ const el=document.querySelector('#resp'); el.textContent=d.answer; el.classList.add('on')
+        stateEl.textContent='daily briefing'
+        try{ say(d.spoken||d.answer) }catch(e){}
+        setTimeout(()=>{ if(!speaking){ el.classList.remove('on'); setMode('idle','online · say something') } },14000) } }catch(e){}
+    // update available -> the orb turns amber and offers one tap
+    try{ const c=await (await fetch('/config.json')).json()
+      if(c&&c.update&&!c.demo){
+        shells.forEach(s=>s.material.color.setHex(0xffb060)); glow.material.color.setHex(0xff9a3a)
+        rings.forEach(r=>r.material.color.setHex(0xffa050))
+        const pill=document.createElement('button')
+        pill.textContent='Update to v'+c.update
+        pill.style.cssText='position:fixed;z-index:8;top:70px;left:50%;transform:translateX(-50%);padding:8px 16px;border:1px solid #ffb060;border-radius:20px;background:rgba(30,18,6,.7);color:#ffd9ad;font:inherit;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;pointer-events:auto'
+        pill.onclick=async()=>{ pill.disabled=true; pill.textContent='Updating…'
+          try{ const r=await (await fetch('/api/update',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json()
+            pill.textContent=r.ok?(r.restart?'Updated · restart the app':'Updated · reloading…'):'Update failed'
+            if(r.ok&&!r.restart) setTimeout(()=>location.reload(true),900)
+          }catch(e){ pill.textContent='Update failed' } }
+        document.body.appendChild(pill)
+        try{ say('An update is ready. Version '+c.update+'.') }catch(e){}
+      } }catch(e){}
+  },2400)
 
   // ================= VOICE + AI =================
   const resp=$('#resp'), q=$('#q'), mic=$('#mic'), bar=$('#bar')
@@ -157,8 +185,23 @@
     const u=new SpeechSynthesisUtterance(text.slice(0,600)); u.rate=1.03
     const vs=speechSynthesis.getVoices(); const v=vs.find(v=>/en-GB/i.test(v.lang))||vs.find(v=>/en/i.test(v.lang)); if(v)u.voice=v
     u.onstart=()=>{speaking=true; setMode('speaking','speaking')}
+    u.onboundary=()=>{ talkPulse=1 }   // the orb kicks on every spoken word — real rhythm, not a sine
     u.onend=()=>{speaking=false; setMode('idle','online')}
     speechSynthesis.speak(u) }catch(e){} }
+  // real microphone level while listening (drives the orb)
+  let actx=null, ana=null, micStream=null, micRAF=0
+  async function micMeterStart(){ try{
+    micStream=await navigator.mediaDevices.getUserMedia({audio:true})
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)()
+    const src=actx.createMediaStreamSource(micStream); ana=actx.createAnalyser(); ana.fftSize=256; src.connect(ana)
+    const buf=new Uint8Array(ana.frequencyBinCount)
+    const tick=()=>{ if(!ana)return; ana.getByteFrequencyData(buf)
+      let s=0; for(let i=2;i<40;i++)s+=buf[i]
+      micAmp+=((s/38/255)*2.2-micAmp)*0.3
+      micRAF=requestAnimationFrame(tick) }
+    tick() }catch(e){} }
+  function micMeterStop(){ cancelAnimationFrame(micRAF); micAmp=0; ana=null
+    if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream=null } }
   async function ask(text){ text=(text||'').trim(); if(!text||busy)return; busy=true; q.value=''
     if(speaking){speechSynthesis.cancel();speaking=false}
     setMode('thinking','thinking'); resp.classList.add('on'); resp.innerHTML='<span style="opacity:.5">…</span>'
@@ -175,8 +218,8 @@
     if(rec){ try{rec.stop()}catch(e){}; rec=null; mic.classList.remove('rec'); bar.classList.remove('live'); setMode('idle','online'); return }
     rec=new SR(); rec.lang='en-US'; rec.interimResults=false
     rec.onresult=e=>{ const s=e.results[0][0].transcript; ask(s) }
-    rec.onend=()=>{ mic.classList.remove('rec'); bar.classList.remove('live'); rec=null }
-    mic.classList.add('rec'); bar.classList.add('live'); setMode('listening','listening'); rec.start() })
+    rec.onend=()=>{ mic.classList.remove('rec'); bar.classList.remove('live'); micMeterStop(); rec=null }
+    mic.classList.add('rec'); bar.classList.add('live'); setMode('listening','listening'); micMeterStart(); rec.start() })
 })();
 </script>
 <script src="/license.js"></script>
