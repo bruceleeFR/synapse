@@ -32,6 +32,10 @@
   #hand{flex:0 0 36px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);cursor:pointer;background:transparent;display:flex;align-items:center;justify-content:center;transition:.2s}
   #hand svg{width:16px;height:16px;stroke:#e0b585;fill:none;stroke-width:1.7}
   #hand.live{border-color:var(--a);box-shadow:0 0 14px rgba(255,140,40,.5)}
+  #wake{flex:0 0 36px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);cursor:pointer;background:transparent;display:flex;align-items:center;justify-content:center;transition:.2s}
+  #wake svg{width:16px;height:16px;stroke:#e0b585;fill:none;stroke-width:1.7}
+  #wake.live{border-color:var(--a2);box-shadow:0 0 14px rgba(255,200,120,.5)}
+  #wake.live svg{stroke:var(--a2)}
   #camj{position:fixed;z-index:6;right:22px;bottom:104px;width:200px;height:150px;border:1px solid var(--a);border-radius:10px;overflow:hidden;opacity:0;transform:scale(.9);transition:opacity .3s,transform .3s,border-color .3s,box-shadow .3s;pointer-events:none;background:#04070f}
   #camj.on{opacity:.94;transform:scale(1)}
   #camj.det{border-color:#5effc0;box-shadow:0 0 22px rgba(60,255,180,.35)}
@@ -69,6 +73,7 @@
     <button id="mic" title="talk"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg></button>
     <input id="q" placeholder="Ask JARVIS, or tap the mic" autocomplete="off">
     <button id="hand" title="hand control"><svg viewBox="0 0 24 24"><path d="M8 13V6a1.5 1.5 0 0 1 3 0v5m0-5.5a1.5 1.5 0 0 1 3 0V11m0-4a1.5 1.5 0 0 1 3 0v6a6 6 0 0 1-6 6h-1a6 6 0 0 1-5.2-3L4 15a1.5 1.5 0 0 1 2.6-1.5L8 15"/></svg></button>
+    <button id="wake" title="wake word: say JARVIS"><svg viewBox="0 0 24 24"><path d="M12 3a7 7 0 0 1 7 7c0 3-2 4.5-2 7h-10c0-2.5-2-4-2-7a7 7 0 0 1 7-7Z"/><path d="M10 21h4"/></svg></button>
   </div>
   <div id="camj"><span class="cl">hand cam</span><span class="hc" id="hcj"></span><video id="camvj" playsinline muted></video><canvas id="camcvj"></canvas></div>
 </div>
@@ -233,6 +238,8 @@
       const r=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q:text,lang:'en',key:uk})})
       const d=await r.json(); const ans=(d.answer||'').replace(/\s+/g,' ').trim()
       resp.textContent=ans; say(d.spoken||ans)
+      if(d.action&&d.action.type==='reminder'){ addReminder(d.action.text, Date.now()+d.action.delayMs) }
+      if(d.action&&d.action.type==='briefing'){ try{ const t=await (await fetch('/api/today')).json(); if(t&&t.answer){ resp.textContent=t.answer; say(t.spoken||t.answer) } }catch(e){} }
     }catch(e){ resp.textContent='I could not reach the brain.'; setMode('idle','online') }
     busy=false }
   q.addEventListener('keydown',e=>{ if(e.key==='Enter') ask(q.value) })
@@ -252,6 +259,48 @@
     if(convo||rec){ stopConvo(); return }
     convo=true; listen() })
   window.ORB={ talk:()=>{ if(!convo&&!rec){ convo=true; listen() } }, hush:()=>stopConvo(), busy:()=>busy||speaking, isListening:()=>!!rec }
+
+  // ================= REMINDERS ON THE ORB =================
+  // persisted in the browser, they fire even after a reload: the orb flares and speaks
+  function loadRem(){ try{ return JSON.parse(localStorage.getItem('jarvis_reminders')||'[]') }catch(e){ return [] } }
+  function saveRem(a){ try{ localStorage.setItem('jarvis_reminders',JSON.stringify(a)) }catch(e){} }
+  function addReminder(text,due){ const a=loadRem(); a.push({text,due}); saveRem(a) }
+  setInterval(()=>{ const a=loadRem(); const now=Date.now(); const dueNow=a.filter(r=>r.due<=now)
+    if(!dueNow.length) return
+    saveRem(a.filter(r=>r.due>now))
+    const r=dueNow[0]
+    tEnergy=1; setTimeout(()=>{ if(mode==='idle') tEnergy=0.35 },6000)   // the orb flares
+    resp.textContent='Reminder: '+r.text; resp.classList.add('on')
+    setMode('speaking','reminder'); say('Reminder. '+r.text)
+    setTimeout(()=>{ if(!speaking&&!busy){ resp.classList.remove('on'); setMode('idle','online') } },12000)
+  },5000)
+
+  // ================= WAKE WORD =================
+  // standby ear: say "JARVIS" and it answers. Toggle with the flame button, remembered.
+  const wakeBtn=document.getElementById('wake')
+  let wakeOn=false, wakeRec=null
+  function wakeLoop(){ if(!wakeOn||wakeRec||rec||speaking||busy) return
+    try{ wakeRec=new SR(); wakeRec.lang='en-US'; wakeRec.continuous=true; wakeRec.interimResults=true
+      wakeRec.onresult=e=>{ let heard=''
+        for(let i=e.resultIndex;i<e.results.length;i++) heard+=e.results[i][0].transcript
+        if(/\b(jarvis|jervis|djarvis)\b/i.test(heard)){ try{wakeRec.stop()}catch(x){}; wakeRec=null
+          talkPulse=1; setMode('listening','yes?'); say('Yes?')
+          setTimeout(()=>{ convo=true; listen() },900) } }
+      wakeRec.onend=()=>{ wakeRec=null; if(wakeOn) setTimeout(wakeLoop,800) }
+      wakeRec.start(); setMode('idle','standby · say jarvis')
+    }catch(e){ wakeRec=null } }
+  function setWake(on){ wakeOn=on; wakeBtn.classList.toggle('live',on)
+    try{ localStorage.setItem('jarvis_wake',on?'1':'0') }catch(e){}
+    if(on) wakeLoop()
+    else { if(wakeRec){try{wakeRec.stop()}catch(e){}; wakeRec=null} if(!convo) setMode('idle','online') } }
+  if(wakeBtn) wakeBtn.addEventListener('click',()=>setWake(!wakeOn))
+  // resume standby when a conversation ends
+  const _stopConvo=stopConvo
+  stopConvo=function(){ _stopConvo(); if(wakeOn) setTimeout(wakeLoop,800) }
+  // and after speech finishes outside conversation
+  setInterval(()=>{ if(wakeOn&&!wakeRec&&!rec&&!speaking&&!busy) wakeLoop() },3000)
+  // restore the preference (mic permission was already granted on first use)
+  try{ if(SR&&localStorage.getItem('jarvis_wake')==='1') setTimeout(()=>setWake(true),1800) }catch(e){}
 })();
 </script>
 <script src="/license.js"></script>
