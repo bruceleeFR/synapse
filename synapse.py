@@ -20,6 +20,13 @@ if getattr(sys, "frozen", False):
 else:
     ROOT = os.path.dirname(os.path.abspath(__file__))
 WEB = os.path.join(ROOT, "web")
+# Remote updates land in a persistent per-user folder, served in priority over the
+# bundled files. Crucial for the frozen .exe/.app, whose bundle is a throwaway temp
+# dir recreated at every launch — updates written there would vanish on restart.
+WEB_OVER = os.path.join(os.path.expanduser("~"), ".synapse", "web")
+def web_path(name):
+    over = os.path.join(WEB_OVER, name)
+    return over if os.path.exists(over) else os.path.join(WEB, name)
 
 # ----------------------------------------------------------------------------- scan
 WIKILINK = re.compile(r"\[\[([^\]|#]+)(?:[#|][^\]]*)?\]\]")
@@ -771,9 +778,10 @@ def make_handler():
             # static web asset (guard against path traversal)
             fn = path.lstrip("/")
             if fn:
-                full = os.path.realpath(os.path.join(WEB, fn))
-                if full.startswith(os.path.realpath(WEB) + os.sep) and os.path.isfile(full):
-                    return self._file(fn)
+                for base in (WEB_OVER, WEB):   # user-level updates first, then the bundle
+                    full = os.path.realpath(os.path.join(base, fn))
+                    if full.startswith(os.path.realpath(base) + os.sep) and os.path.isfile(full):
+                        return self._file(fn)
             return self._send(404, json.dumps({"error": "not found"}))
         def do_POST(self):
             path = self.path.split("?")[0]
@@ -830,14 +838,14 @@ def make_handler():
                     "config": {k: State.config.get(k) for k in ("persona", "humor", "model", "voice")}}))
             return self._send(404, json.dumps({"error": "not found"}))
         def _file(self, name):
-            p = os.path.join(WEB, name)
+            p = web_path(name)   # user-level updates override the bundled files
             if not os.path.exists(p): return self._send(404, b"missing")
             ctype = mimetypes.guess_type(p)[0] or "text/html"
             if ctype == "text/html":
                 html = open(p, "r", encoding="utf-8").read()
                 def stamp(m):  # auto cache-bust local .js/.css by file mtime -> Cloudflare always fresh
                     rel = m.group(2)
-                    fp = os.path.join(WEB, rel.lstrip("/"))
+                    fp = web_path(rel.lstrip("/"))
                     if not os.path.exists(fp): return m.group(0)
                     return '%s="%s?v=%d"' % (m.group(1), rel, int(os.path.getmtime(fp)))
                 html = re.sub(r'(src|href)="(/[^"?]+\.(?:js|css))(?:\?[^"]*)?"', stamp, html)
@@ -916,16 +924,24 @@ def apply_update():
     if not man:
         return {"ok": False, "error": "cannot reach update server"}
     base = man.get("base", UPDATE_BASE).rstrip("/")
-    updated, restart = [], False
+    frozen = getattr(sys, "frozen", False)
+    updated, restart, new_build = [], False, False
     for rel in man.get("files", []):
         rel = rel.lstrip("/")
         try:
-            data = _get(base + "/" + rel, timeout=25)
             if rel.endswith(".py"):
+                if frozen:
+                    # the core is compiled into the .exe/.app — it can't be patched in place.
+                    # The whole UI still updates below; a core change means grabbing the new build.
+                    new_build = True
+                    continue
+                data = _get(base + "/" + rel, timeout=25)
                 dest = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.basename(rel))
                 restart = True
             else:
-                dest = os.path.join(WEB, rel)
+                data = _get(base + "/" + rel, timeout=25)
+                # persistent per-user override, survives restarts even for the frozen app
+                dest = os.path.join(WEB_OVER, rel)
             d = os.path.dirname(dest)
             if d and not os.path.isdir(d):
                 os.makedirs(d, exist_ok=True)
@@ -934,7 +950,11 @@ def apply_update():
             updated.append(rel)
         except Exception:
             pass
-    return {"ok": True, "from": VERSION, "to": man.get("version"), "updated": updated, "restart": restart}
+    out = {"ok": True, "from": VERSION, "to": man.get("version"), "updated": updated, "restart": restart}
+    if new_build:
+        out["new_build"] = True
+        out["note"] = "UI updated. A core update also exists: download the latest build from github.com/bruceleeFR/synapse/releases"
+    return out
 
 def main():
     import urllib.parse
